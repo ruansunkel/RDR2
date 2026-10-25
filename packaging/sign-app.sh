@@ -18,7 +18,8 @@ fi
 while IFS= read -r -d '' path; do
     if [[ -f "$path" && ! -L "$path" ]] && /usr/bin/file -b "$path" | /usr/bin/grep -q 'Mach-O'; then
         /usr/bin/codesign --force --sign "$IDENTITY" "${ARGS[@]}" "$path"
-    elif [[ -d "$path" && ( "$path" == *.framework || "$path" == *.app ) && "$path" != "$APP" ]]; then
+    elif [[ -d "$path" && "$path" == *.app && "$path" != "$APP" ]] || \
+         [[ -d "$path" && "$path" == *.framework && -e "$path/$(basename "$path" .framework)" ]]; then
         /usr/bin/codesign --force --sign "$IDENTITY" "${ARGS[@]}" "$path"
     fi
 done < <(/usr/bin/find "$APP/Contents" -depth -print0)

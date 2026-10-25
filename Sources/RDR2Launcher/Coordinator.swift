@@ -12,10 +12,14 @@ import CryptoKit
     private var children: [Process] = []
     private var lockFD: Int32 = -1
 
-    init(resources: URL) throws {
+    private let isolatedHome: URL?
+
+    init(resources: URL, dataRoot: URL? = nil) throws {
         self.resources = resources
-        paths = try .standard()
+        paths = try dataRoot.map { DataPaths(root: $0) } ?? .standard()
+        isolatedHome = dataRoot?.appendingPathComponent("build-test-home")
         try paths.create()
+        if let isolatedHome { try FileManager.default.createDirectory(at: isolatedHome, withIntermediateDirectories: true) }
         lockFD = Darwin.open(paths.root.appendingPathComponent("state/launcher.lock").path, O_CREAT | O_RDWR, 0o600)
         guard lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) == 0 else {
             throw LauncherError.message("RDR2Launcher is already open for this user.")
@@ -46,10 +50,6 @@ import CryptoKit
         guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 else {
             throw LauncherError.message("macOS 14 or newer is required.")
         }
-        let memory = ProcessInfo.processInfo.physicalMemory
-        guard memory == 0 || memory >= 16 * 1024 * 1024 * 1024 else {
-            throw LauncherError.message("This Vulkan baseline requires at least 16 GiB RAM; 8 GiB is insufficient in upstream tests. No game software has been installed.")
-        }
         guard SystemCheck.rosettaAvailable() else {
             status(.missingRosetta, "Rosetta 2 is required for the bundled Intel Wine engine. Use Apple’s installation prompt; then reopen this app.")
             throw LauncherError.message("Rosetta 2 is unavailable. No system software has been installed.")
@@ -64,31 +64,9 @@ import CryptoKit
 
     func perform(_ action: SteamAction) {
         guard !busy else { return }
-        busy = true
         Task {
-            defer { busy = false }
             do {
-                try preflight()
-                if !FileManager.default.fileExists(atPath: paths.steam.path) { try checkDisk() }
-                try await initializePrefix()
-                if !FileManager.default.fileExists(atPath: paths.steam.path) {
-                    try checkDisk()
-                    try await installSteam()
-                }
-                if case .install = action { try checkDisk() }
-                if case .play = action {
-                    let tasks = try await wine(["tasklist", "/FO", "CSV", "/NH"], capture: true)
-                    if tasks.lowercased().contains("\"rdr2.exe\"") {
-                        changed?("RDR2 is already running in this prefix. Switch to its window. Story Mode has not been verified by this launcher.")
-                        return
-                    }
-                    status(.launching, "Starting through Steam → Rockstar. Complete sign-in in their windows. A process starting does not verify Story Mode.")
-                } else if case .install = action {
-                    status(.rdr2Downloading, "Steam will confirm ownership, installation location and download progress. Choose R:\\ in Steam for your selected folder. Press Play after Steam reports completion.")
-                } else {
-                    status(.needsSteamLogin, "Steam handles sign-in, updates and verification. Its first update can take 15–25 minutes. Retry Open Steam after a client crash.")
-                }
-                try startSteam(action)
+                try await execute(action)
             } catch {
                 if session.stage == .missingRosetta || session.stage == .missingRuntime {
                     changed?(error.localizedDescription)
@@ -97,10 +75,38 @@ import CryptoKit
         }
     }
 
-    func checkDisk() throws {
+    func execute(_ action: SteamAction) async throws {
+        guard !busy else { throw LauncherError.message("Setup is already running.") }
+        busy = true
+        defer { busy = false }
+        try preflight()
+        if !FileManager.default.fileExists(atPath: paths.steam.path) { try checkDisk(game: false) }
+        try await initializePrefix()
+        if !FileManager.default.fileExists(atPath: paths.steam.path) {
+            try checkDisk(game: false)
+            try await installSteam()
+        }
+        if case .install = action { try checkDisk() }
+        if case .play = action {
+            let tasks = try await wine(["tasklist", "/FO", "CSV", "/NH"], capture: true)
+            if tasks.lowercased().contains("\"rdr2.exe\"") {
+                changed?("RDR2 is already running in this prefix. Switch to its window. Story Mode has not been verified by this launcher.")
+                return
+            }
+            status(.launching, "Starting through Steam → Rockstar. Complete sign-in in their windows. A process starting does not verify Story Mode.")
+        } else if case .install = action {
+            status(.rdr2Downloading, "Steam will confirm ownership, installation location and download progress. Choose R:\\ in Steam for your selected folder. Press Play after Steam reports completion.")
+        } else {
+            status(.needsSteamLogin, "Steam handles sign-in, updates and verification. Its first update can take 15–25 minutes. Retry Open Steam after a client crash.")
+        }
+        try startSteam(action)
+    }
+
+    func checkDisk(game: Bool = true) throws {
         let library = URL(fileURLWithPath: session.library ?? paths.root.path)
-        guard try SystemCheck.availableBytes(at: library) >= 150 * 1024 * 1024 * 1024 else {
-            throw LauncherError.message("At least 150 GiB free is required before a fresh installation. Choose a larger game folder, or use Play for an existing Steam installation.")
+        let required: Int64 = (game ? 150 : 8) * 1024 * 1024 * 1024
+        guard try SystemCheck.availableBytes(at: library) >= required else {
+            throw LauncherError.message(game ? "At least 150 GiB free is required before a fresh game installation. Choose a larger game folder, or use Play for an existing installation." : "At least 8 GiB free is required for Windows Steam setup.")
         }
     }
 
@@ -110,6 +116,7 @@ import CryptoKit
         p.executableURL = try Runtime.safeURL(runtime.wine, root: resources)
         p.arguments = arguments
         p.environment = runtime.environment(resources: resources, paths: paths)
+        if let isolatedHome { p.environment?["HOME"] = isolatedHome.path }
         p.currentDirectoryURL = paths.root
         p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
         return p

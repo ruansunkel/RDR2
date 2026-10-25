@@ -86,6 +86,8 @@ final class LauncherCoreChecks {
         XCTAssertEqual(env["PATH"], "/usr/bin:/bin:/usr/sbin:/sbin")
         XCTAssertTrue(env["WINEPREFIX"]!.contains("User Data"))
         XCTAssertNil(env["DYLD_LIBRARY_PATH"])
+        XCTAssertEqual(env["GST_PLUGIN_SYSTEM_PATH_1_0"], "")
+        XCTAssertTrue(env["GST_REGISTRY_1_0"]!.hasPrefix(root.path))
     }
 }
 

@@ -21,9 +21,34 @@ def load(name):
 
 prepare = load('prepare-runtime')
 gate = load('release-gate')
+extractor = load('extract-verified')
 
 
 class PackagingTests(unittest.TestCase):
+    def test_verified_source_extractor_rejects_traversal_and_escaping_links(self):
+        for name, link in [('source/../../escape', None), ('source/link', '../../../escape')]:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                stage = root / 'stage'
+                stage.mkdir()
+                archive = self.archive(root, name, link)
+                with self.assertRaises(ValueError):
+                    extractor.extract(archive, stage)
+                self.assertFalse((root / 'escape').exists())
+
+    def test_verified_source_extractor_will_not_follow_existing_destination_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            stage = root / 'stage'
+            stage.mkdir()
+            outside = root / 'outside'
+            outside.mkdir()
+            (stage / 'source').symlink_to(outside)
+            archive = self.archive(root, 'source/file')
+            with self.assertRaises(ValueError):
+                extractor.extract(archive, stage)
+            self.assertFalse((outside / 'file').exists())
+
     def test_escaping_inventory_symlink_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

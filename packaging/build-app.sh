@@ -6,7 +6,9 @@ export CLANG_MODULE_CACHE_PATH="$ROOT/.cache/clang"
 export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.cache/swift-modules"
 MODE="${1:---runtime}"
 RUNTIME="${2:-}"
-APP="$ROOT/dist/RDR2Launcher.app"
+APP="${RDR2_BUILD_OUTPUT:-$ROOT/dist/RDR2Launcher.app}"
+[[ "$APP" == /* ]] || { echo 'RDR2_BUILD_OUTPUT must be an absolute app path' >&2; exit 2; }
+mkdir -p "$(dirname "$APP")"
 if [[ "$MODE" != --launcher-only && "$MODE" != --runtime ]]; then
     echo 'Usage: build-app.sh --launcher-only | --runtime STAGED_RUNTIME' >&2; exit 2
 fi
@@ -26,6 +28,7 @@ cp "$BIN/RDR2Launcher" "$APP/Contents/MacOS/"
 python3 packaging/runtime_tools.py prune-launcher-rpaths "$APP"
 cp packaging/Info.plist "$APP/Contents/Info.plist"
 cp config/engine-upstream.json "$APP/Contents/Resources/"
+cp config/media-sources.json "$APP/Contents/Resources/"
 cp config/recipes/*.json "$APP/Contents/Resources/recipes/"
 cp BUILD.md "$APP/Contents/Resources/BUILD.md"
 /usr/bin/ditto licenses "$APP/Contents/Resources/licenses"

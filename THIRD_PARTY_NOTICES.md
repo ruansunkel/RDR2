@@ -19,3 +19,12 @@ before bundling them. Manifest license labels and an SBOM do not substitute for
 corresponding source, required notices or a compliant offer. Build scripts require
 a separately reviewed runtime `licenses/` directory. No Apple D3DMetal, game or
 client binaries, credentials or authenticated prefix may be distributed.
+
+The development runtime also uses the pinned media inputs listed in
+config/media-sources.json: official GStreamer playback components, FFmpeg built as
+LGPL demux libraries (no GPL flags), Intel GLib, PCRE2 and libintl. Vendor notices
+are preserved by packaging/collect-runtime-notices.py. Header/tools from the
+GStreamer development package are excluded. Load-path changes and hashes are
+recorded in runtime/relocation-changes.json. Complete mixed-runtime notice and
+corresponding-source review remains open; runtime/licenses/REVIEW-PENDING.md is
+retained and public release acceptance is not marked complete.

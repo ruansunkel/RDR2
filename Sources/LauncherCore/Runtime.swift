@@ -67,6 +67,9 @@ public struct Runtime: Decodable {
         for (key, value) in baseEnv where key != "WINEDEBUG" {
             env[key] = value.replacingOccurrences(of: "${frameworks}", with: fw)
         }
+        env["GST_PLUGIN_SYSTEM_PATH_1_0"] = ""
+        env["GST_PLUGIN_SCANNER"] = fw + "/GStreamer.framework/Versions/1.0/libexec/gstreamer-1.0/gst-plugin-scanner"
+        env["GST_REGISTRY_1_0"] = paths.root.appendingPathComponent("state/gstreamer-registry.bin").path
         // r27's Wine bridge finds MoltenVK through engine/lib relative symlinks;
         // no guessed ICD or DYLD_LIBRARY_PATH setting is necessary.
         return env

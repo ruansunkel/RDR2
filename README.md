@@ -4,24 +4,31 @@ A native macOS launcher and repeatable packaging tools for the Steam edition of
 Red Dead Redemption 2, using freely available Wine 11, patched MoltenVK and DXMT.
 The game uses Vulkan; DXMT serves Steam/Rockstar launcher components.
 
-**Current deliverable is a launcher-only development preview, not a playable RDR2
-distribution.** This environment is an 8 GB Apple virtual machine without Rosetta,
-Highball or Wine. Gameplay and the separate clean-host acceptance gates are blocked.
-See [STATUS.md](STATUS.md) for observed evidence and outstanding requirements.
+**Current deliverable is a runtime-inclusive development app.** Its bundled Wine
+11 initializes a fresh prefix, and the native launcher installed and updated real
+Windows Steam on the build Mac. The user has signed in and reports RDR2 downloading.
+Gameplay and a separate-host test remain unverified. See [STATUS.md](STATUS.md).
 
-Build the preview on an Apple Silicon Mac with command-line developer tools:
+Rebuild on an Apple Silicon build Mac with command-line developer tools:
 
 ```sh
 scripts/check.sh
-packaging/build-app.sh --launcher-only
-packaging/package.sh dist/RDR2Launcher.app --development
+RDR2_BUILD_OUTPUT="$PWD/dist/host-test/RDR2Launcher.app" \
+  packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
+packaging/package.sh dist/host-test/RDR2Launcher.app --development
 ```
 
-Open `dist/RDR2Launcher.app`. The preview displays the missing-runtime state and
-cannot install or run a game. The full-runtime build procedure, signing and
-acceptance requirements are in [BUILD.md](BUILD.md).
+The transferable app is `dist/host-test/RDR2Launcher.app`; the archive is
+`dist/RDR2Launcher-development.zip` with `dist/SHA256SUMS`. This is ad-hoc signed,
+not notarized. No Steam/game files or account state are inside it. The initial
+launcher-only preview can still be built with `--launcher-only`.
 
-With a full verified runtime bundle, choose a persistent game folder and select
+The full runtime preparation, source pins, signing and remaining distribution
+requirements are in [BUILD.md](BUILD.md). The original app at
+`dist/RDR2Launcher.app` remains in place for the active build-Mac Steam session;
+use the **host-test** artifact for transfer.
+
+On first launch on the host, choose a persistent game folder and select
 **Install & Play**. Sign in within Windows Steam, select/add the mapped **R:** drive
 using Steam's Storage settings, and let Steam confirm ownership and complete the
 download. Then select **Play** to use Steam → Rockstar → RDR2. Complete Rockstar
@@ -40,4 +47,11 @@ provided. Backups of changed state/registry settings remain in the data director
 
 Steam/Rockstar authentication and an owned Steam copy (1174180) are required. Apple
 manages Rosetta installation if needed; this project does not install it silently.
-No commercial wrapper, VM, Apple D3DMetal or DRM bypass is part of the launcher.
+No commercial wrapper, Windows VM, Apple D3DMetal or DRM bypass is part of the launcher.
+
+The active build-Mac download uses the isolated data directory
+`vendor/probes/native-steam/`. Keep using **that existing Windows Steam window**
+for download completion and Play; opening a launcher with a different data directory
+creates a separate prefix. Build-Mac sign-in/download state is intentionally excluded
+from the transferable app. No development tool or manually configured environment
+is needed on the host; Apple-managed Rosetta and normal client sign-ins still apply.

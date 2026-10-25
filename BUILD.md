@@ -1,178 +1,184 @@
 # Build and validation
 
-All commands below are **build Mac only**. The host receives one `.app`; it must
-never need Swift, Python, Homebrew, Highball or a separate Wine installation.
-Current status and actual checks are in STATUS.md. No working-game baseline has
-been observed, so a full engine bundle is deliberately not represented as tested.
+These commands are **build Mac only**. The host receives one `.app`; its normal
+workflow uses no Python, Swift, Homebrew, Highball or separately installed Wine.
+Apple supplies Rosetta if needed. Steam/Rockstar sign-in and actual game download
+remain official client workflows. STATUS.md contains current observed results.
 
-## Toolchain and workspace
+The user clarified that build-Mac launch preparation comes first and the separate
+host will test playability later. The 8 GB build VM is therefore allowed to run
+Wine/Steam; no minimum-RAM gate prevents bootstrap. No gameplay is inferred from
+build success, client startup, fake downloads, ACF files or process presence.
 
-Apple Silicon, macOS 14+, Apple Command Line Tools with Swift 5.9+ and Python 3.9+.
-The observed build uses Swift 6.4 / macOS 27.0.1. No Swift package dependencies.
-Use this checkout as the build workspace; `vendor/`, `logs/`, `.build/`, `.cache/`
-and `dist/` are ignored. This intentionally keeps work in the authorized repository
-instead of creating `~/Games/rdr2-agent` outside the workspace.
+## Build tools and pinned inputs
+
+Apple Silicon build Mac, macOS 14+, Apple CLT with Swift 5.9+ and Python 3.9+.
+Observed toolchain: Swift 6.4 / macOS 27.0.1. The Swift package has no dependencies.
+Project caches, sources and outputs stay in `.cache/`, `.build/`, `vendor/`, `dist/`.
+No global package manager or Wine installation is performed.
+
+The exact original engine is `x64-crossover26.3-r27` in
+`config/engine-upstream.json`; all archives have pinned SHA-256 values. Replacement
+media input pins are in `config/media-sources.json`. Upstream code used for build
+inspection and the pbzx extractor is pinned as follows:
+
+```sh
+git clone https://github.com/gauthierpiarrette/highball.git vendor/highball
+git -C vendor/highball checkout cabadb4cfaaad0ece66f7fad2206fdd7a0b41ffb
+git clone https://github.com/gauthierpiarrette/highball-engine.git vendor/highball-engine-r27
+git -C vendor/highball-engine-r27 checkout 5d6bbe0c83f4592a8798abba48cc7e8f58feb492
+```
+
+Do not overwrite existing vendor checkouts; the ones in this workspace are already
+present. Review build scripts before executing them. No downloaded installer/script
+is run by a curl pipe. The GStreamer packages are **extracted, never installed**.
+
+## Reproduce the runtime
+
+Use new destination paths; preparation/extraction refuses existing destinations.
+The original unmodified archive stage is preserved for before/after comparison.
 
 ```sh
 scripts/preflight.sh
-scripts/check.sh
-packaging/build-app.sh --launcher-only
-packaging/test-relocation.sh dist/RDR2Launcher.app --launcher-only
-packaging/package.sh dist/RDR2Launcher.app --development
-```
-
-The preview is an arm64 native UI with no Wine runtime. Its checksum, SBOM and
-test report are produced in `dist/`. It has only an ad-hoc signature and has not
-passed Gatekeeper, notarization, Finder, game or separate-host acceptance.
-Swift checks use a Foundation-only executable because CLT does not ship XCTest.
-Module/build caches stay inside the checkout. `--disable-sandbox` is a SwiftPM
-build-tool option; it does not alter macOS Gatekeeper or host security settings.
-
-## Establish the gameplay baseline first
-
-On a suitable physical build Mac, follow plan.md phases 0–5 using the official
-Highball release and a dedicated environment. Obtain Apple-managed Rosetta with
-the user's approval if absent. Do not repurpose Doom or any other game prefix.
-Use the pinned RDR2 Wine 11 engine, DXMT launcher mode and native Vulkan game
-renderer. The source/recipe revision and exact upstream archive hashes are in
-`notes/environment.md` and `config/engine-upstream.json`.
-
-The intended host is a separate M1 Max; its actual macOS, RAM, free space and
-Rosetta capability remain unknown. Check at least 150 GiB free for a fresh
-download and current Steam storage requirements. The upstream RDR2 notes identify
-8 GB as insufficient; the current 8 GB virtual machine cannot validate this game.
-Record controllable Story Mode, renderer, resolution and any measured FPS in
-`notes/benchmarks.md` and evidence reports. Never convert upstream reports into
-local successes.
-
-## Stage the pinned redistributable runtime
-
-After the baseline gate, this build-time command downloads the six selected
-archives from pinned official GitHub release URLs and verifies each SHA-256
-**before extracting it**. It does not execute third-party binaries or install
-anything globally. Review the script before running it.
-
-```sh
 python3 packaging/prepare-runtime.py vendor/rdr2-runtime-r27
+python3 packaging/fetch-media.py ffmpeg gstreamer-runtime gstreamer-devel glib-bottle pcre2-bottle gettext-bottle
+python3 packaging/extract-verified.py ffmpeg vendor/ffmpeg-source
+python3 packaging/extract-verified.py glib-bottle vendor/glib-2.88.3-bottle
+python3 packaging/extract-verified.py pcre2-bottle vendor/pcre2-bottle
+python3 packaging/extract-verified.py gettext-bottle vendor/gettext-bottle
+packaging/build-ffmpeg.sh
+python3 packaging/prepare-gstreamer.py vendor/GStreamer-1.28.7.framework
+python3 packaging/relocate-runtime.py vendor/rdr2-runtime-r27 vendor/rdr2-runtime-r27-portable-v3 --gstreamer vendor/GStreamer-1.28.7.framework
+python3 packaging/collect-runtime-notices.py vendor/rdr2-runtime-r27-portable-v3
 ```
 
-The destination must be new. Extraction rejects traversal, escaping links, devices
-and unsupported archive structures. It omits D3DMetal and its shim from the
-Template runtime instead of redistributing Apple code. The preserved structure is
-`engine/`, `frameworks/`, `renderers/dxmt/wine/`; `engine/lib` contains relative
-runtime links matching Highball's EngineStore. Patched MoltenVK replaces the
-runtime's stock copy and takes precedence over GStreamer's copy.
+The official historical GLib formula's bottle contains package version **2.88.2**
+with ABI 8801, despite the formula version 2.88.3. Its actual version, exact checksum
+and observed load-command versions are retained; no version metadata is falsified.
+The PCRE2 and gettext bottles satisfy its actual dependencies. Public GHCR bottle
+fetches use the documented anonymous placeholder, with no account credentials.
 
-Before distributing, add a reviewed `licenses/` directory to the staged runtime:
-all notices, component licenses, source locations, exact corresponding source /
-patches or compliant source offer, including the mixed LGPL runtime. Record the
-review and supplied files in an evidence report. Upstream license labels in the
-manifest alone are **insufficient** for this gate. No Steam/game binaries,
-authenticated prefix, registry, personal files or Apple D3DMetal may be staged.
-The staging/downloading pipeline has fixture coverage but has not assembled real
-archives here. An unsupported archive/link or failed audit requires investigation;
-do not skip it or blindly rewrite third-party binaries.
+The original Template GStreamer framework has older media/GLib ABIs than the engine
+expects. The portable stage uses the official GStreamer 1.28.7 playback libraries,
+matching GLib/PCRE2/libintl and a source-built FFmpeg demux runtime. FFmpeg decoding
+for Wine remains in GStreamer's libav plugin. No Wine or graphics translator fork
+is introduced. Unused Template renderers, wrapper SDK and alternate MoltenVK are
+excluded, including Apple D3DMetal and its alias. DXMT remains in the selected overlay.
+
+`relocate-runtime.py` records every load-command change and before/after checksum.
+Short `engine/lib` aliases avoid exceeding upstream Mach-O header padding.
+GStreamer helpers are thinned to x86_64 so they load the same Intel library stack
+as Wine. Relative DXMT aliases resolve its ntdll/winemac imports to the same engine.
+Changes occur only in a new stage and all changed/nested code is re-signed.
+
+Vendor notices and license texts are preserved in `runtime/licenses/`. The mixed
+Template libraries, Wine Mono/Gecko/fonts and exact corresponding-source mapping
+still require a complete review before public distribution. `REVIEW-PENDING.md`
+is retained, and the release gate stays closed. The artifact is for private testing.
+
+## Build a separate transferable app
+
+Keep the current app/prefix untouched while Steam is downloading. Use a different
+output path for the updated transferable app:
 
 ```sh
-packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27"
-packaging/audit-deps.sh dist/RDR2Launcher.app
-packaging/test-relocation.sh dist/RDR2Launcher.app --wineboot
-packaging/sign-app.sh dist/RDR2Launcher.app -
-packaging/package.sh dist/RDR2Launcher.app --development
+scripts/check.sh
+RDR2_BUILD_OUTPUT="$PWD/dist/host-test/RDR2Launcher.app" \
+  packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
+packaging/sign-app.sh dist/host-test/RDR2Launcher.app -
+packaging/test-relocation.sh dist/host-test/RDR2Launcher.app --wineboot
+packaging/package.sh dist/host-test/RDR2Launcher.app --development
+(cd dist && shasum -a 256 -c SHA256SUMS)
 ```
 
-`build-app.sh` backs up an existing app, compiles the launcher, copies only the
-staged runtime, creates per-file/symlink integrity metadata and audits Mach-O
-dependencies/RPATHs. It removes unused toolchain RPATHs from its own freshly
-compiled native launcher, then signs it. Vendor binaries are never rewritten.
-It fails on outside dependencies and unsafe symlinks; it does not assume a
-`DYLD_*` override proves relocation. Auditing is conservative: inherited RPATHs,
-dynamic loads and plugins still require actual runtime diagnostics. The relocation
-script copies to a path containing spaces, clears the environment and optionally
-runs `wine --version`, fresh `wineboot`, and `cmd /c ver`; it retains a new private
-test prefix. It never touches existing game prefixes.
+For a UI-only preview, `packaging/build-app.sh --launcher-only` remains available;
+that mode does not contain an engine and must not be treated as a working-game app.
+An existing output app is backed up. Native release builds use project-local
+module caches and SwiftPM's native backend with debug info disabled, avoiding CLT
+SwiftBuild dSYM restrictions in this environment. Foundation-only checks run without
+XCTest/Xcode. SwiftPM's `--disable-sandbox` changes only its build-tool sandbox.
+No macOS Gatekeeper or system security setting is changed.
 
-## Native first-run behavior and limitations
+The build removes unused developer-tool RPATHs from our native executable, creates
+a per-file/symlink runtime manifest, audits all Mach-O references and ad-hoc signs
+the app. `sign-app.sh` signs nested code inside out, then regenerates runtime hashes
+before signing the outer app. Pure resource framework directories without an
+umbrella binary are not misidentified as signable code containers.
 
-The app uses Foundation URLs for all mutable state. Runtime paths come from
-Bundle.main, never PATH lookup or Highball directories. It initializes a fresh
-prefix, applies the pinned registry settings with backups, and maps the selected
-folder to R:. Wine's newly created document-folder host symlinks are backed up
-and replaced with local directories to keep saves inside app data.
+## Actual relocation and bootstrap checks
 
-Wine processes use the upstream base environment and DXMT overlay. Sync is
-consistently `none` for Steam and games to avoid killing a user's running game
-when switching wineserver modes. This is a conservative compatibility choice;
-the upstream msync performance optimization remains unverified and unimplemented.
-The app does not add guessed Vulkan ICD overrides; r27's bridge/relative runtime
-links locate patched MoltenVK. Dynamic Wine/MoltenVK/DXMT loading remains to test.
+`test-relocation.sh` copies the complete bundle to a path containing spaces, uses
+`env -i` and a system-only PATH, verifies runtime hashes and optionally starts Wine
+in a **new private HOME/prefix**. The smoke test runs Wine version, wineboot, Windows
+cmd, media registration, GStreamer/libav discovery and x86_64 `dlopen` checks. It
+stops only that disposable prefix's services afterwards. Its build-only C probe
+and compiler are not shipped as host prerequisites. The automation sandbox may
+require approval for Wine's local socket; no sudo is required.
 
-SteamSetup comes from the Valve HTTPS URL in the pinned CC0 recipe. The app checks
-HTTP status, final origin, PE header and size, records its observed SHA-256, then
-runs the normal installer. Valve's recipe supplies no pinned installer hash;
-Authenticode is not independently verified. Steam's client updater remains official.
-Installer windows/sign-in are visible; output is not logged. Prefix/client setup
-is serialized and a per-user advisory lock rejects concurrent launcher instances.
-
-Steam handles ownership, EULAs, library selection, progress and readiness. Install
-uses `steam://install/1174180`, Repair uses `steam://validate/1174180`, and Play uses
-`-applaunch 1174180`, through **Windows Steam inside the same prefix**. These routes
-must still be tested against the installed client. A detected RDR2 process prevents
-another Play request, but does not prove controllable gameplay. No manifest file
-or cached state produces a fake ready/running/gameplay milestone. The UI asks the
-user to select Play after Steam confirms completion; it does not scrape login data
-or infer entitlement. Rockstar setup is delegated to Steam's first-run chain on
-r27; standalone Rockstar recipe installation and the older-prefix error-113 fix
-remain untested. No destructive registry repair or process killing is automated.
-
-Network/client errors retain user data for retry. Steam itself resumes downloads.
-Existing cached game authentication/offline behavior belongs to Steam/Rockstar.
-No offline entitlement is promised. Fully automatic client-progress integration,
-GUI end-to-end behavior, interruption recovery and app replacement await real tests.
-
-## Signing, notarization and release
-
-Ad-hoc development signing is supported. For Developer ID signing, supply your
-legitimate identity and an independently tested entitlements plist; this project
-does not invent Wine/JIT entitlements. `sign-app.sh` signs nested code inside out,
-regenerates runtime hashes after binary signing, then signs the outer app.
+Build-only actual first-run entry (never point this at another game's prefix):
 
 ```sh
-packaging/sign-app.sh dist/RDR2Launcher.app 'Developer ID Application: YOUR IDENTITY' /path/to/tested-entitlements.plist
+dist/host-test/RDR2Launcher.app/Contents/MacOS/RDR2Launcher \
+  --bootstrap-steam --data-directory "$PWD/vendor/probes/a-new-bootstrap-test"
 ```
 
-Use Apple's `xcrun notarytool submit` with an already configured keychain profile
-on the actual zip, then `xcrun stapler staple` the app, validate it, and repackage
-the stapled bundle. No credentials are stored in these scripts. Validate using
-`codesign --verify --deep --strict`, `spctl --assess --type execute` and
-`xcrun stapler validate`. Keep normal Gatekeeper/quarantine behavior intact.
+This uses the same coordinator as the GUI, with a private test HOME and persisted
+data directory. It downloads the real Valve HTTPS installer, records its observed
+SHA-256, installs it and opens Windows Steam. The upstream recipe supplies no
+pinned Steam installer hash; HTTP status, final origin, PE header and size are
+checked, while Authenticode is not independently verified. No account output is
+logged. Steam's client updater remains official and can take 15–25 minutes.
 
-Copy `notes/evidence/acceptance.template.json` to `acceptance.json`, complete its
-observations and local report files only after real testing: clean-host Finder,
-Steam sign-in/install/resume, Rockstar, controllable Story Mode, dynamic dependency
-loads, moved bundle with spaces, replacement/persistence and licensing. The reports
-are human observations; booleans are not automated proof.
+The **currently active build session** already uses `vendor/probes/native-steam/`
+and the original `dist/RDR2Launcher.app`. The user has signed in and reports RDR2
+actively downloading. Keep using that existing Windows Steam window for Play when
+ready. The transferable app contains no copy of this prefix or its credentials.
 
-```sh
-packaging/package.sh dist/RDR2Launcher.app --release
-```
+## Host workflow and remaining tests
 
-Release packaging refuses missing evidence/runtime, invalid signatures, failed
-Gatekeeper assessment or missing stapled notarization. Deliver the app/zip,
-SHA256SUMS, SBOM.md, BUILD.md, TEST-REPORT.md and dependency-audit.json. The archive
-is not bit-for-bit deterministic (signing timestamps, Swift toolchain and zip
-metadata vary); inputs, ordering, checksums and commands are pinned/repeatable.
+Copy only `dist/host-test/RDR2Launcher.app` or the development archive to the host.
+Open the app normally. Choose a persistent game folder, select Install & Play,
+sign in within Windows Steam, and add/use the mapped R: library through Steam's
+Storage settings. When Steam confirms completion, select Play. Steam → Rockstar →
+RDR2 remains the entitlement chain. Complete any EULA/MFA in the official windows.
+The actual game uses Vulkan over patched MoltenVK; DXMT serves the launcher UI.
 
-## Host acceptance and removal
+The app uses bundle-relative paths and isolates mutable data under Foundation's
+Application Support directory. Steam and game updates never write into the signed
+bundle. Fresh-prefix document symlinks are backed up and replaced with local folders
+so saves stay with app data. Configuration changes have timestamped backups. The
+per-user launch lock and serialized setup prevent concurrent installer operations.
+Sync is consistently none to avoid killing services when switching modes; msync
+performance tuning remains untested. GStreamer scans only bundled plugins and puts
+its registry in app data, preventing accidental host-plugin/cache dependencies.
 
-The separate host must receive only the app, open it from Finder with normal
-security, and authenticate within the real clients. Confirm no third-party
-runtime loads from Homebrew/Highball/global Wine paths. Reopen after interrupted
-download, move the app to another directory, replace it, and verify the existing
-library and saves remain. Record actual failures and measured results.
+Repair asks Steam to validate app 1174180. Install uses `steam://install/1174180`;
+Play uses `-applaunch 1174180` inside Windows Steam. Steam is authoritative for
+ownership, progress and readiness. The app never reads login credentials or marks
+the game ready from an ACF file. It does not claim DRM-protected offline play.
 
-Removing the app leaves `~/Library/Application Support/RDR2Launcher/` and the
-chosen library intact. To roll back a build, restore its timestamped `.app` backup;
-never automatically roll a prefix back across incompatible Wine versions. No
-uninstall or data-deletion command is supplied. Existing Doom/Steam/Highball
-installations and macOS security settings are untouched by the build scripts.
+The host is unavailable in this session. Finder/Gatekeeper, complete Rockstar/game
+launch, controls/FPS, clean-host behavior, actual app replacement and resumed game
+downloads remain to be observed. No simulated completion substitutes for these.
+
+## Distribution security and removal
+
+Current signatures are ad-hoc; no valid Developer ID identity was found. No normal
+Gatekeeper/notarization claim is made. Public release requires a legitimate
+Developer ID identity, independently tested Wine/JIT entitlements, inside-out
+signing, notarytool submission using your own keychain profile, ticket stapling,
+`codesign --verify --deep --strict`, `spctl --assess` and `xcrun stapler validate`.
+Never disable Gatekeeper or remove quarantine recursively as a setup shortcut.
+
+Complete `notes/evidence/acceptance.json` from the template only with real
+observations and local reports, including licensing/source review. `package.sh
+--release` refuses missing evidence/runtime, invalid signatures, failed assessment
+or an absent stapled ticket. Build inputs and commands are reproducible; archive
+bytes can vary with signatures, toolchain and metadata. SHA256SUMS identifies the
+actual development archive.
+
+Removing/replacing the app leaves `~/Library/Application Support/RDR2Launcher/`
+and the chosen Steam library intact. Restore a timestamped app backup to roll back
+code; never automatically roll a prefix across incompatible engines. No destructive
+reset is provided. Native Steam, unrelated Wine/Doom installations, account data
+and macOS security settings were not modified.

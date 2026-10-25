@@ -85,6 +85,26 @@ if CommandLine.arguments.contains("--diagnose") {
         exit(0)
     } catch { fputs("Diagnostic: \(error.localizedDescription)\n", stderr); exit(1) }
 }
+if CommandLine.arguments.contains("--bootstrap-steam") {
+    guard let index = CommandLine.arguments.firstIndex(of: "--data-directory"),
+          CommandLine.arguments.indices.contains(index + 1), CommandLine.arguments[index + 1].hasPrefix("/") else {
+        fputs("Build-only usage: --bootstrap-steam --data-directory ABSOLUTE_PRIVATE_TEST_DIRECTORY\n", stderr); exit(2)
+    }
+    let root = URL(fileURLWithPath: CommandLine.arguments[index + 1])
+    _ = MainActor.assumeIsolated {
+        Task { @MainActor in
+            do {
+                guard let resources = Bundle.main.resourceURL else { throw LauncherError.message("Missing resources") }
+                let coordinator = try Coordinator(resources: resources, dataRoot: root)
+                coordinator.changed = { print($0); fflush(stdout) }
+                try await coordinator.execute(.open)
+                print("Steam launch requested. Client login, game download and gameplay remain unverified.")
+                exit(0)
+            } catch { fputs("Bootstrap failed: \(error.localizedDescription)\n", stderr); exit(1) }
+        }
+    }
+    RunLoop.main.run()
+}
 MainActor.assumeIsolated {
     let delegate = AppDelegate()
     let app = NSApplication.shared

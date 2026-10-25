@@ -1,100 +1,101 @@
 # Status — 2026-10-25
 
-**Highest execution milestone: read-only build preflight and tested launcher /
-packaging implementation. No playable or standalone-runtime release is verified.**
+**Current milestone: runtime-inclusive development app; real Windows Steam installed
+and updated through the native launcher. The user has signed in and reports RDR2
+actively downloading on the build Mac. Gameplay and clean-host validation remain open.**
 
-## Observed build environment
+The user clarified that this is the build Mac, the host is unavailable, and the
+immediate objective is a launchable bundle for transfer; host playability follows.
+The build workflow therefore proceeds without requiring gameplay on this 8 GB VM.
+No simulated download or fixture is counted as a real Steam/game success.
 
-macOS 27.0.1 (26A434), arm64, Apple M1 Max **Virtual**, 8 GB RAM, approximately
-218 GiB free on a 251 GiB workspace volume. The Apple Command Line Tools and Swift
-6.4 are present. Rosetta execution fails with `Bad CPU type in executable`.
-No Homebrew, Wine, Highball app/data or Steam app were found. Hardware sysctl
-reads are restricted; filtered system_profiler reports the virtual chip and RAM
-without serial numbers. Full sanitized preflight is retained in ignored logs/.
+## Environment
 
-The intended separate physical M1 Max host is inaccessible in this session; its
-macOS, RAM, disk, Rosetta, signing behavior and game/account state are unverified.
-This environment does not meet the game's baseline: 8 GB RAM is insufficient
-according to the live upstream compatibility notes, and Rosetta is missing.
-No global tools, Apple-managed prerequisites or game binaries were installed.
+macOS 27.0.1 (26A434), arm64, Apple M1 Max Virtual, 8 GB RAM; initially approximately
+217 GiB free after source builds. Existing Apple CLT / Swift 6.4. On this turn,
+Rosetta's x86_64 execution check **passed** and native Steam was already present.
+Those are changes since the earlier preflight; this agent did not install either.
+No Homebrew, global Wine or Highball app/data was found. Native Steam is untouched.
+The separate physical M1 Max host's OS, RAM, disk and security behavior are unknown.
 
-## Implemented
+## Executed
 
-- Native arm64 Swift/AppKit UI with Install & Play, Play, Open Steam, Choose game
-  folder, Repair (Steam validation), View logs and Quit.
-- Crash-resumable persisted setup, timestamp/unique backups, per-user launch lock,
-  serialized prefix/installer operations and isolated mutable data outside the app.
-- Bundle-only Wine invocation, streaming runtime checksum verification, safe
-  relative paths and a clean per-process environment from pinned upstream inputs.
-- Official Valve HTTPS installer workflow/provenance, private prefix recipe
-  settings, app-owned Documents directories and an R: mapping for Steam libraries.
-- Steam install/validate/-applaunch requests with no credential interception or
-  claim of readiness based on ACF files. Real Steam/Rockstar process behavior is
-  untested; the user must press Play after Steam confirms download completion.
-- Build-only checksum-pinned runtime staging with archive/symlink validation and
-  D3DMetal exclusion; recursive Mach-O dependency/RPATH audit; inside-out signing;
-  relocation/Wine smoke scripts; development/release packaging, SBOM/checksums.
-- Release gate requiring actual observation reports, signatures, normal
-  Gatekeeper assessment and stapled notarization. No security bypass is provided.
-- README.md, BUILD.md, provenance/license snapshots, benchmark/evidence templates,
-  preflight/diagnostic scripts and a .gitignore covering binary/account/local data.
+- Downloaded and SHA-256 verified all six pinned Highball r27 runtime archives.
+  Wine reports `wine-11.0`; patched MoltenVK's linear-fallback markers are present.
+- Ran actual Wine prefix initialization and `cmd /c ver` with a system-only PATH
+  and a private HOME/prefix. Wine reports Windows 10.0.19045; MoltenVK initializes
+  on the Apple Paravirtual GPU. Initial sandbox socket denial was resolved with
+  an approved unsandboxed execution of the same isolated test, without sudo.
+- Audited the real upstream runtime: found 21 issues, including absolute build
+  paths, a broken Apple graphics alias, missing FFmpeg ABI versions and stale media.
+- Prepared the official GStreamer 1.28.7 playback dependency closure; built only
+  FFmpeg 9.0.2's x86_64 demuxing libraries from verified source, without GPL flags
+  or external codec packages. Added verified Intel GLib/PCRE2/libintl libraries.
+- Corrected load commands/IDs and recorded original/relocated hashes and operations
+  in `runtime/relocation-changes.json`. Uses short relative library aliases to
+  respect existing Mach-O header space. No ABI compatibility version is falsified.
+- Removed unused Template renderer overlays, wrapper SDK and alternate MoltenVK.
+  No Apple D3DMetal or client/game/account files are bundled. The initial full app
+  passes a static audit of **153 Mach-O files** with no unresolved outside references.
+- A dynamic GStreamer probe caught `_libintl_newlocale` missing from the old runtime.
+  Replacing libintl with the matching pinned gettext bottle fixes it; actual
+  `gst-inspect-1.0 --version` reports GStreamer 1.28.7 successfully.
+- The bundled native app initialized its own test prefix, downloaded the official
+  Valve installer, installed Windows Steam and started its real self-update.
+  Steam's updater reported completion; steam.exe and five steamwebhelper.exe
+  processes were observed. The user subsequently confirmed sign-in and RDR2 downloading.
+- Preserved 157 vendor notice/provenance files. Complete mixed-runtime notices and
+  corresponding-source review remain required before public distribution.
 
-## Verification
+## Data and artifacts
 
-- Python packaging tests: **6 passed** (archive traversal/link escape,
-  D3DMetal exclusion, inventory integrity, dependency resolution, release evidence).
-- Swift Foundation core checks: **6 passed** (state backup/resume, corrupt state,
-  path containment, changed engine bytes, Steam action arguments, relocated env).
-- Shell syntax: passed for every shell script via scripts/check.sh.
-- Initial builds exposed denied default module-cache paths, missing XCTest in CLT,
-  a Swift main-actor entry issue and SwiftBuild dSYM restrictions. Fixed using
-  project-local caches, Foundation-only checks, an explicit main-actor UI entry,
-  and native SwiftPM release compilation with debug info disabled.
-- App, signature, dependency audit, archive and relocation observations are
-  recorded in notes/evidence/build-validation.md. Native compilation, ad-hoc
-  signature verification, static dependency audit and copied-preview startup
-  passed. The copied preview correctly reports no runtime. Release packaging
-  rejects the missing engine. No valid signing identities were found.
+The **active build-Mac Steam session** uses:
 
-Automated fixture/core tests do **not** verify Wine, authentication, Vulkan,
-gameplay, clean-host operation, offline play, download resume or persistence
-across real installed-game updates.
+`vendor/probes/native-steam/prefixes/default/`
 
-## Phase gates
+Its launcher is the existing `dist/RDR2Launcher.app`. Keep that Steam window and
+prefix for the current download and subsequent Play. Do not start a different
+prefix and assume it contains this installation. No authentication files are read,
+exported or copied into the transferable app. Only app-defined status events,
+public installer provenance and nonsecret updater/process summaries were inspected.
 
-| Phase | Result |
+The final transferable development artifact is built separately to avoid replacing
+files used by the active Steam session:
+
+- `dist/host-test/RDR2Launcher.app`
+- `dist/RDR2Launcher-development.zip`
+- `dist/SHA256SUMS`, `SBOM.md`, `BUILD.md`, `TEST-REPORT.md`, `dependency-audit.json`
+
+Final copied-bundle/media smoke outcomes are recorded in
+`notes/evidence/runtime-validation.md`: runtime hashes, relocated Wine initialization,
+Windows cmd, media registration, GStreamer/libav discovery and dynamic library loads
+all passed. Eight Python tests and six Swift checks passed. These are ad-hoc development artifacts;
+there is no Developer ID identity, notarization or Gatekeeper distribution claim.
+Build products and all client/game/account state remain ignored by Git.
+
+## Remaining acceptance
+
+| Check | State |
 | --- | --- |
-| 0 — Preflight | Build inventory completed; baseline/host gate blocked by 8 GB VM, missing Rosetta and inaccessible host |
-| 1 — Tested Wine/Highball environment | Not installed; baseline gate not satisfied |
-| 2 — Steam ownership/download | Not run; requires real client and user sign-in |
-| 3 — Rockstar/Vulkan/Story Mode | Not run; no success claimed |
-| 4–5 — Diagnosis/tuning | No game failure/FPS measurements; environment blockers recorded |
-| 6 — Scripts | Implemented/syntax checked; actual game launch unverified |
-| 7–8 — Standalone app/workflow | Native development preview and runtime tooling implemented; full runtime/dynamic loads/first-run gate unverified |
-| 9 — Distribution/clean host | Development artifact only; Developer ID, notarization and host acceptance unresolved |
-| 10 — Experimental DX12 | Not authorized or performed |
+| Native app, pinned engine, patched MoltenVK, DXMT bundled | Passed build and copied-bundle checks on build Mac |
+| Static outside-dependency/symlink audit | Final complete bundle passed, 153 Mach-O files |
+| Real Wine prefix and Windows utilities | Passed on build Mac |
+| Official Windows Steam bootstrap/update | Passed on build Mac |
+| Steam sign-in and RDR2 download | User confirmed; download still in progress |
+| RDR2 installed/verified | Not yet confirmed by Steam/user |
+| Rockstar sign-in / entitlement launch | Not yet verified |
+| Story Mode, controls and FPS | Not measured; no gameplay claim |
+| Copied bundle on separate host / Finder / normal Gatekeeper | Host unavailable; not tested |
+| Developer ID / notarization | No valid signing identity found; unresolved |
+| Full redistribution/source compliance | Review remains incomplete; release gate closed |
 
-## Exact remaining work
+The next game step is to let the existing download finish, use Steam's Play in
+that same prefix, complete Rockstar setup/sign-in/EULAs in its windows, and observe
+launch. The native launcher's Play uses Steam `-applaunch 1174180`; install and
+repair use Steam URIs. File/manifest presence never proves ownership or readiness.
 
-Use a suitable physical build Mac and the separate host. Verify RAM/macOS/free
-space and user-approved Rosetta, then establish the dedicated Highball r27
-gameplay baseline (Steam/Rockstar login by the user). Follow BUILD.md to stage
-and license-review the complete Wine/runtime/MoltenVK/DXMT inputs, audit their
-real load paths, compile the full development app, execute relocation/Wine smoke
-tests and debug any actual failures one variable at a time. Complete real Steam
-installation/resume, Rockstar, interactive Story Mode, app move/replacement and
-clean-host Finder tests before completing acceptance reports. Developer ID and
-notarization credentials are needed for a normal Gatekeeper release.
-
-Current artifact target: `/Users/agent/Projects/RDR2/dist/RDR2Launcher.app` and
-`dist/RDR2Launcher-development.zip`. These are **launcher-only development
-previews**, with no packaged engine and no assertion of zero external runtime
-requirements for a working game. The planned engine is r27, MoltenVK 1.4.2 patched,
-DXMT launcher overlay, native game Vulkan; none has been executed here.
-
-All implementation/download/build changes stay in this checkout and ignored
-temporary build paths. No existing Doom, Steam, Wine or Highball settings/prefixes
-were changed. Removing the development app/checkout does not remove any existing
-game installation. In a full app, user data persists under
-`~/Library/Application Support/RDR2Launcher/`; an external library stays in the
-chosen folder. No destructive reset/uninstall operation was executed.
+User data on the host persists under `~/Library/Application Support/RDR2Launcher/`
+and an optional selected external library. Replacing/removing the app preserves
+those files. No reset/uninstall or unrelated-prefix mutation was performed. Build
+smoke tests stop only their own newly created disposable wineservers. The active
+Steam/RDR2 download is left running.

@@ -1,0 +1,39 @@
+{
+  "ffmpeg": {
+    "version": "9.0.2",
+    "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+    "checksum_source": "https://raw.githubusercontent.com/Homebrew/homebrew-core/HEAD/Formula/f/ffmpeg.rb"
+  },
+  "gstreamer-runtime": {
+    "version": "1.28.7",
+    "url": "https://gstreamer.freedesktop.org/data/pkg/osx/1.28.7/gstreamer-1.0-1.28.7-universal.pkg",
+    "sha256": "529fdf4a4027d942e59b5b3564f6400adaa008f63ce5f3fed4ffe35d73911994",
+    "checksum_source": "https://github.com/gauthierpiarrette/highball-engine/blob/5d6bbe0c83f4592a8798abba48cc7e8f58feb492/inputs-arm64.json"
+  },
+  "gstreamer-devel": {
+    "version": "1.28.7",
+    "url": "https://gstreamer.freedesktop.org/data/pkg/osx/1.28.7/gstreamer-1.0-devel-1.28.7-universal.pkg",
+    "sha256": "72a44870cf02472cbf6e9a84bcc25ee6807dd1c26659a112066373544d365e7a",
+    "checksum_source": "https://github.com/gauthierpiarrette/highball-engine/blob/5d6bbe0c83f4592a8798abba48cc7e8f58feb492/inputs-arm64.json"
+  },
+  "glib-bottle": {
+    "version": "2.88.3",
+    "url": "https://ghcr.io/v2/homebrew/core/glib/blobs/sha256:6b047e4ff839ed9165d2e9bf90f12eb7af8068c0a6dadb3bc83abd9083e6e832",
+    "sha256": "6b047e4ff839ed9165d2e9bf90f12eb7af8068c0a6dadb3bc83abd9083e6e832",
+    "checksum_source": "https://raw.githubusercontent.com/Homebrew/homebrew-core/a4452aa2c3722b71e9e921f091fd48c9818ee6e3/Formula/g/glib.rb",
+    "observed_package_version": "2.88.2"
+  },
+  "pcre2-bottle": {
+    "version": "10.47_1",
+    "url": "https://ghcr.io/v2/homebrew/core/pcre2/blobs/sha256:72691a0ed5b0ec4d21641ee33aa00fad05e6e8ddbfa417fe27f4cd26521ed24a",
+    "sha256": "72691a0ed5b0ec4d21641ee33aa00fad05e6e8ddbfa417fe27f4cd26521ed24a",
+    "checksum_source": "https://raw.githubusercontent.com/Homebrew/homebrew-core/a4452aa2c3722b71e9e921f091fd48c9818ee6e3/Formula/p/pcre2.rb"
+  },
+  "gettext-bottle": {
+    "version": "1.0",
+    "url": "https://ghcr.io/v2/homebrew/core/gettext/blobs/sha256:e0072004be0db53c5f501d6ab2b78b9219067243f8989c40604720751dd6bdc4",
+    "sha256": "e0072004be0db53c5f501d6ab2b78b9219067243f8989c40604720751dd6bdc4",
+    "checksum_source": "https://raw.githubusercontent.com/Homebrew/homebrew-core/a4452aa2c3722b71e9e921f091fd48c9818ee6e3/Formula/g/gettext.rb"
+  }
+}
