@@ -78,16 +78,16 @@ is retained, and the release gate stays closed. The artifact is for private test
 
 ## Build a separate transferable app
 
-Keep the current app/prefix untouched while Steam is downloading. Use a different
+Keep the current app/prefix untouched while Steam or Rockstar is running. Use a different
 output path for the updated transferable app:
 
 ```sh
 scripts/check.sh
-RDR2_BUILD_OUTPUT="$PWD/dist/host-test/RDR2Launcher.app" \
+RDR2_BUILD_OUTPUT="$PWD/dist/transfer/RDR2Launcher.app" \
   packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
-packaging/sign-app.sh dist/host-test/RDR2Launcher.app -
-packaging/test-relocation.sh dist/host-test/RDR2Launcher.app --wineboot
-packaging/package.sh dist/host-test/RDR2Launcher.app --development
+packaging/sign-app.sh dist/transfer/RDR2Launcher.app -
+packaging/test-relocation.sh dist/transfer/RDR2Launcher.app --wineboot
+packaging/package.sh dist/transfer/RDR2Launcher.app --development
 (cd dist && shasum -a 256 -c SHA256SUMS)
 ```
 
@@ -118,7 +118,7 @@ require approval for Wine's local socket; no sudo is required.
 Build-only actual first-run entry (never point this at another game's prefix):
 
 ```sh
-dist/host-test/RDR2Launcher.app/Contents/MacOS/RDR2Launcher \
+dist/transfer/RDR2Launcher.app/Contents/MacOS/RDR2Launcher \
   --bootstrap-steam --data-directory "$PWD/vendor/probes/a-new-bootstrap-test"
 ```
 
@@ -129,14 +129,15 @@ pinned Steam installer hash; HTTP status, final origin, PE header and size are
 checked, while Authenticode is not independently verified. No account output is
 logged. Steam's client updater remains official and can take 15–25 minutes.
 
-The **currently active build session** already uses `vendor/probes/native-steam/`
-and the original `dist/RDR2Launcher.app`. The user has signed in and reports RDR2
-actively downloading. Keep using that existing Windows Steam window for Play when
-ready. The transferable app contains no copy of this prefix or its credentials.
+The **current build session** uses `vendor/probes/native-steam/`; its installed game
+and private client data remain there. The user confirmed download completion and
+Steam/Rockstar sign-in. The active clients use an earlier runtime bundle, which is
+preserved while running. The transferable app contains no copy of this prefix or
+its credentials. See notes/evidence/recovery-validation.md for the latest launch result.
 
 ## Host workflow and remaining tests
 
-Copy only `dist/host-test/RDR2Launcher.app` or the development archive to the host.
+Copy only `dist/transfer/RDR2Launcher.app` or the development archive to the host.
 Open the app normally. Choose a persistent game folder, select Install & Play,
 sign in within Windows Steam, and add/use the mapped R: library through Steam's
 Storage settings. When Steam confirms completion, select Play. Steam → Rockstar →
@@ -182,3 +183,81 @@ and the chosen Steam library intact. Restore a timestamped app backup to roll ba
 code; never automatically roll a prefix across incompatible engines. No destructive
 reset is provided. Native Steam, unrelated Wine/Doom installations, account data
 and macOS security settings were not modified.
+
+## Recover the existing build-Mac installation
+
+The updated GUI accepts `--data-directory` for an existing launcher environment,
+and `--remember-environment` persists the selection in the user's default launcher
+state directory. No selected absolute path is stored in the signed app. A clean
+host with no selection still creates its normal Application Support environment.
+
+```sh
+open -n "$PWD/dist/transfer/RDR2Launcher.app" --args \
+  --data-directory "$PWD/vendor/probes/native-steam" --remember-environment
+```
+
+The same operation is available through Use existing environment in the UI. Choose
+the data folder containing prefixes/default, not just steamapps/common. Show game
+files reveals an existing RDR2.exe folder without asserting Steam readiness. Missing
+remembered folders fail explicitly; switching environments preserves all files and
+backs up the small selection configuration. Build-only diagnostic launch-rdr2.sh
+selects the known existing project environment when present.
+
+Rockstar's first launch in the recovered environment failed with an unavailable
+background service. Its installed service can run when Steam keeps the Wine session
+alive. The updated Play path opens Steam first, checks the installed service, starts
+it only if registered/stopped, verifies RUNNING, then uses the Steam entitlement
+route. This service check does not reinstall anything or reset the prefix.
+
+Initial authentication diagnosis (before the recovery below): user reached Rockstar sign-in and reported
+#1.000.7. macOS clock is correct and set to Africa/Johannesburg; this Wine engine
+reports Kaliningrad Standard Time at the same UTC+2 offset. An explicit per-process
+Johannesburg TZ/TZDIR probe did not change the Windows name. No timezone definitions
+or OS settings had been changed at that point. Browser sign-in subsequently worked;
+the verified per-prefix correction is described below. No credentials, verification codes or correlation
+identifiers are collected in the evidence.
+
+## Verified Rockstar sign-in recovery
+
+The user confirmed browser sign-in worked while Wine returned #1.000.7. The Mac's
+clock was correct, but this engine chose Kaliningrad Standard Time for the real
+Africa/Johannesburg host. Setting TZ/TZDIR did not change the Windows name. The
+three earlier matching UTC+2/no-DST definitions were identified as Kaliningrad,
+Libya and Namibia. After backing up the system hive and verifying full registry
+copies in HKLM/Software/RDR2Launcher/TimezoneBackups, the definitions were moved
+out of Wine's matching list. A fresh query selected South Africa Standard Time.
+Restarting the failed Rockstar frontend through Steam then allowed sign-in; the
+user confirmed success. No macOS settings, credentials or game files changed.
+
+The native launcher now performs that same narrowly scoped correction only when
+the actual host zone is Africa/Johannesburg and Wine reports one of those three conflicting names. It checks
+the current-year definitions, verifies every backup before removing any matching
+entry, rolls moved entries back on failure, and stores a timestamped system-hive
+snapshot/journal outside the app. A persisted pending-operation marker also restores
+missing definitions after an interruption before retrying. This uses bundled Wine's registry tool and needs
+no Python/compiler on the host. Other host zones and unexpected definitions are
+not subjected to this workaround. An engine/prefix refresh can restore the original
+zone definitions, so applicability is checked again before a launch.
+
+For build-Mac recovery or restoring the exact moved definitions, the helper is:
+
+```sh
+python3 scripts/repair-south-africa-timezone.py --app "$PWD/dist/transfer/RDR2Launcher.app" \
+  --data-directory "$PWD/vendor/probes/native-steam"
+# Dry run above; --apply changes only the verified timezone entries.
+# After closing Windows clients normally, restore original definitions from a specific journal:
+python3 scripts/repair-south-africa-timezone.py --app "$PWD/dist/transfer/RDR2Launcher.app" \
+  --data-directory "$PWD/vendor/probes/native-steam" --restore /absolute/path/to/recovery.json
+```
+
+The helper validates the journal against the selected prefix and allowed backup
+namespace; it does not rely on a globally installed wine or the default prefix.
+If changing the Mac to another geographic timezone later, restore the original
+zone definitions before reusing this workaround's prefix. Backups are never copied
+into the app. Public distribution/clean-host/gameplay acceptance remains separate.
+
+Wine desktop/service descendants can keep inherited stdout pipe handles open after
+a short command exits. This was observed during recovery queries. Public diagnostic
+command responses now use private temporary files and a post-exit snapshot, instead
+of waiting for pipe EOF. Files are removed after reading; Steam/Rockstar account
+output stays uncollected. A regression check covers a child retaining stdout.

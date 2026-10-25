@@ -13,6 +13,44 @@ func XCTAssertNoThrow<T>(_ expression: @autoclosure () throws -> T) {
     do { _ = try expression() } catch { fatalError("Unexpected error: \(error)") }
 }
 
+actor TimeZoneRegistryFixture {
+    var definitions: [String: String] = [:]
+    var corruptBackup = false
+    var failSecondDelete = false
+    var deletes = 0
+    init(corruptBackup: Bool = false, failSecondDelete: Bool = false) {
+        self.corruptBackup = corruptBackup; self.failSecondDelete = failSecondDelete
+        let value = "88FFFFFF" + String(repeating: "00", count: 40)
+        for name in WineTimeZoneRepair.conflicts + [WineTimeZoneRepair.target] {
+            definitions[WineTimeZoneRepair.zones + "\\" + name] = value
+        }
+    }
+    func run(_ args: [String]) throws -> String {
+        let key = args[2]
+        if args[1] == "query", key == WineTimeZoneRepair.info {
+            let missing = WineTimeZoneRepair.conflicts.allSatisfy { definitions[WineTimeZoneRepair.zones + "\\" + $0] == nil }
+            return "TimeZoneKeyName REG_SZ " + (missing ? WineTimeZoneRepair.target : "Kaliningrad Standard Time")
+        }
+        if args[1] == "query" {
+            guard let value = definitions[key] else { throw LauncherError.message("No such timezone") }
+            return "TZI REG_BINARY " + (corruptBackup && key.hasPrefix(WineTimeZoneRepair.backupRoot) ? String(repeating: "00", count: 44) : value)
+        }
+        if args[1] == "copy" {
+            guard let value = definitions[key] else { throw LauncherError.message("Missing source") }
+            definitions[args[3]] = value; return "copied"
+        }
+        if args[1] == "delete" {
+            if failSecondDelete && key.hasSuffix("Libya Standard Time") { throw LauncherError.message("Injected deletion failure") }
+            definitions.removeValue(forKey: key); deletes += 1; return "deleted"
+        }
+        throw LauncherError.message("Unexpected command")
+    }
+    func originalsIntact() -> Bool {
+        WineTimeZoneRepair.conflicts.allSatisfy { definitions[WineTimeZoneRepair.zones + "\\" + $0] != nil }
+    }
+    func deletionCount() -> Int { deletes }
+}
+
 final class LauncherCoreChecks {
     var root: URL!
     func setUpWithError() throws {
@@ -70,6 +108,114 @@ final class LauncherCoreChecks {
         XCTAssertThrowsError(try Runtime.load(resources: root))
     }
 
+    func existingEnvironment(_ name: String = "Saved installation") throws -> URL {
+        let data = root.appendingPathComponent(name)
+        let paths = DataPaths(root: data)
+        try paths.create()
+        try FileManager.default.createDirectory(at: paths.steam.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: paths.prefix.appendingPathComponent("system.reg"))
+        try Data().write(to: paths.steam)
+        return data
+    }
+
+    func testSelectedEnvironmentSurvivesLauncherRestart() throws {
+        let data = try existingEnvironment()
+        try FileManager.default.createDirectory(at: data.appendingPathComponent("build-test-home"), withIntermediateDirectories: true)
+        let store = EnvironmentSelectionStore(defaultDataRoot: root.appendingPathComponent("Default"))
+        try store.save(EnvironmentSelection(existingDataRoot: data))
+        let reopened = EnvironmentSelectionStore(defaultDataRoot: root.appendingPathComponent("Default"))
+        XCTAssertEqual(try reopened.load()?.url.path, data.resolvingSymlinksInPath().path)
+        XCTAssertEqual(try reopened.load()?.usePrivateHome, true)
+    }
+
+    func testMissingSelectedEnvironmentDoesNotFallBack() throws {
+        let data = try existingEnvironment()
+        let store = EnvironmentSelectionStore(defaultDataRoot: root.appendingPathComponent("Default"))
+        try store.save(EnvironmentSelection(existingDataRoot: data))
+        try FileManager.default.moveItem(at: data, to: root.appendingPathComponent("Disconnected"))
+        XCTAssertThrowsError(try store.load())
+        XCTAssertTrue(!FileManager.default.fileExists(atPath: root.appendingPathComponent("Default/prefixes/default").path))
+    }
+
+    func testSwitchingEnvironmentKeepsExistingFilesAndBackup() throws {
+        let data = try existingEnvironment()
+        let paths = DataPaths(root: data)
+        let game = paths.steam.deletingLastPathComponent().appendingPathComponent("steamapps/common/Red Dead Redemption 2")
+        try FileManager.default.createDirectory(at: game, withIntermediateDirectories: true)
+        try Data("existing files".utf8).write(to: game.appendingPathComponent("RDR2.exe"))
+        let store = EnvironmentSelectionStore(defaultDataRoot: root.appendingPathComponent("Default"))
+        try store.save(EnvironmentSelection(existingDataRoot: data))
+        try store.save(nil)
+        XCTAssertNil(try store.load())
+        XCTAssertEqual(try Data(contentsOf: game.appendingPathComponent("RDR2.exe")), Data("existing files".utf8))
+        XCTAssertEqual(paths.gameDirectory()?.path, game.path)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: store.file.deletingLastPathComponent().path).contains { $0.contains("backup-") })
+    }
+
+    func testGameFolderIsNotAnExistingEnvironment() throws {
+        XCTAssertThrowsError(try EnvironmentSelection(existingDataRoot: root))
+    }
+
+    func testRockstarServiceRequiresActualRunningState() {
+        XCTAssertTrue(RockstarService.isRunning("SERVICE_NAME: Rockstar Service\n STATE : 4 RUNNING\n WIN32_EXIT_CODE : 0"))
+        XCTAssertTrue(!RockstarService.isRunning("STATE : 1 STOPPED\n WIN32_EXIT_CODE : 4"))
+        XCTAssertTrue(!RockstarService.isRunning("STATE : 2 START_PENDING"))
+    }
+
+    func testBackgroundChildDoesNotHoldCommandCaptureOpen() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "(/bin/sleep 6) & printf 'STATE : 4 RUNNING'"]
+        let started = Date()
+        let result = try await ProcessRunner.run(process, captureIn: root)
+        XCTAssertEqual(result.status, 0)
+        XCTAssertTrue(RockstarService.isRunning(result.output))
+        XCTAssertTrue(Date().timeIntervalSince(started) < 4)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
+    }
+
+    func testTimezoneCorrectionIsHostSpecificAndPreservesBackups() async throws {
+        XCTAssertTrue(WineTimeZoneRepair.needed(hostZone: "Africa/Johannesburg", reported: "Kaliningrad Standard Time"))
+        XCTAssertTrue(!WineTimeZoneRepair.needed(hostZone: "Europe/Kaliningrad", reported: "Kaliningrad Standard Time"))
+        let registry = TimeZoneRegistryFixture()
+        let key = WineTimeZoneRepair.backupRoot + "\\test-repair"
+        try await WineTimeZoneRepair.apply(backupKey: key, year: 2026) { try await registry.run($0) }
+        XCTAssertEqual(await registry.deletionCount(), 3)
+        for name in WineTimeZoneRepair.conflicts {
+            XCTAssertTrue(try await registry.run(["reg", "query", key + "\\" + name, "/v", "TZI"]).contains("REG_BINARY"))
+        }
+    }
+
+    func testTimezoneCorruptBackupCannotRemoveDefinitions() async throws {
+        let registry = TimeZoneRegistryFixture(corruptBackup: true)
+        do {
+            try await WineTimeZoneRepair.apply(backupKey: WineTimeZoneRepair.backupRoot + "\\test-repair", year: 2026) { try await registry.run($0) }
+            fatalError("Corrupt backup must reject the change")
+        } catch { }
+        XCTAssertEqual(await registry.deletionCount(), 0)
+        XCTAssertTrue(await registry.originalsIntact())
+    }
+
+    func testTimezonePartialFailureRestoresOriginalDefinitions() async throws {
+        let registry = TimeZoneRegistryFixture(failSecondDelete: true)
+        do {
+            try await WineTimeZoneRepair.apply(backupKey: WineTimeZoneRepair.backupRoot + "\\test-repair", year: 2026) { try await registry.run($0) }
+            fatalError("Injected failure must abort")
+        } catch { }
+        XCTAssertTrue(await registry.originalsIntact())
+    }
+
+    func testTimezoneInterruptedMoveCanResumeWithoutPrefixReset() async throws {
+        let registry = TimeZoneRegistryFixture()
+        let key = WineTimeZoneRepair.backupRoot + "\\interrupted-repair"
+        for name in WineTimeZoneRepair.conflicts {
+            _ = try await registry.run(["reg", "copy", WineTimeZoneRepair.zones + "\\" + name, key + "\\" + name, "/s", "/f"])
+        }
+        _ = try await registry.run(["reg", "delete", WineTimeZoneRepair.zones + "\\Kaliningrad Standard Time", "/f"])
+        try await WineTimeZoneRepair.restoreMissing(backupKey: key) { try await registry.run($0) }
+        XCTAssertTrue(await registry.originalsIntact())
+    }
+
     func testSteamActionsKeepEntitlementChain() {
         XCTAssertEqual(SteamAction.play.arguments, ["-applaunch", "1174180"])
         XCTAssertEqual(SteamAction.install.arguments, ["steam://install/1174180"])
@@ -92,10 +238,15 @@ final class LauncherCoreChecks {
 }
 
 @main struct CheckRunner {
-    static func main() throws {
+    static func main() async throws {
         let checks = LauncherCoreChecks()
         let tests: [(String, () throws -> Void)] = [
             ("persisted state and backup", checks.testResumePreservesLibraryAndBacksUpOldState),
+            ("selected environment persists", checks.testSelectedEnvironmentSurvivesLauncherRestart),
+            ("missing environment fails safely", checks.testMissingSelectedEnvironmentDoesNotFallBack),
+            ("environment switching preserves game", checks.testSwitchingEnvironmentKeepsExistingFilesAndBackup),
+            ("game folder selection is distinct", checks.testGameFolderIsNotAnExistingEnvironment),
+            ("Rockstar service running state", checks.testRockstarServiceRequiresActualRunningState),
             ("corrupt state", checks.testCorruptStateIsNotSilentlyReset),
             ("runtime path containment", checks.testTraversalAndEscapingSymlinksAreRejected),
             ("runtime integrity", checks.testChangedRuntimeBytesFailIntegrity),
@@ -108,6 +259,15 @@ final class LauncherCoreChecks {
             try checks.tearDownWithError()
             print("PASS: \(name)")
         }
-        print("6 Swift core checks passed")
+        try checks.setUpWithError()
+        try await checks.testBackgroundChildDoesNotHoldCommandCaptureOpen()
+        try checks.tearDownWithError()
+        print("PASS: background child cannot hold command capture open")
+        try await checks.testTimezoneCorrectionIsHostSpecificAndPreservesBackups()
+        try await checks.testTimezoneCorruptBackupCannotRemoveDefinitions()
+        try await checks.testTimezonePartialFailureRestoresOriginalDefinitions()
+        try await checks.testTimezoneInterruptedMoveCanResumeWithoutPrefixReset()
+        print("PASS: timezone applicability, verified backups and rollback")
+        print("16 Swift core checks passed")
     }
 }

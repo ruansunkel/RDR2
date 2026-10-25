@@ -12,6 +12,7 @@ public enum Stage: String, Codable {
 public struct Session: Codable {
     public var stage: Stage = .needsPrefix
     public var library: String?
+    public var pendingTimeZoneBackup: String?
     public var updated = Date()
     public init() {}
 }
@@ -38,6 +39,15 @@ public struct DataPaths {
     public func load() throws -> Session {
         guard FileManager.default.fileExists(atPath: state.path) else { return Session() }
         return try JSONDecoder().decode(Session.self, from: Data(contentsOf: state))
+    }
+    public func gameDirectory(library: String? = nil) -> URL? {
+        var roots = [steam.deletingLastPathComponent()]
+        if let library {
+            let root = URL(fileURLWithPath: library)
+            roots += [root, root.appendingPathComponent("SteamLibrary")]
+        }
+        return roots.map { $0.appendingPathComponent("steamapps/common/Red Dead Redemption 2") }
+            .first { FileManager.default.fileExists(atPath: $0.appendingPathComponent("RDR2.exe").path) }
     }
     public func save(_ session: Session) throws {
         var value = session
@@ -67,5 +77,11 @@ public enum SteamAction {
         case .play: return ["-applaunch", "1174180"]
         case .verify: return ["steam://validate/1174180"]
         }
+    }
+}
+
+public enum RockstarService {
+    public static func isRunning(_ output: String) -> Bool {
+        output.range(of: #"\bSTATE\s*:\s*4\s+RUNNING\b"#, options: .regularExpression) != nil
     }
 }

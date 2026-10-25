@@ -14,6 +14,15 @@ vendor/
 logs/
 prefixes/
 downloads/
+steamapps/
+userdata/
+/state/
+/build-test-home/
+.command-*
+ssfn*
+loginusers.vdf
+localconfig.vdf
+config.vdf
 *.log
 *.bak
 *.backup-*

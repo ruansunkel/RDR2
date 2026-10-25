@@ -14,10 +14,10 @@ import CryptoKit
 
     private let isolatedHome: URL?
 
-    init(resources: URL, dataRoot: URL? = nil) throws {
+    init(resources: URL, dataRoot: URL? = nil, usePrivateHome: Bool = false) throws {
         self.resources = resources
         paths = try dataRoot.map { DataPaths(root: $0) } ?? .standard()
-        isolatedHome = dataRoot?.appendingPathComponent("build-test-home")
+        isolatedHome = usePrivateHome ? paths.root.appendingPathComponent("build-test-home") : nil
         try paths.create()
         if let isolatedHome { try FileManager.default.createDirectory(at: isolatedHome, withIntermediateDirectories: true) }
         lockFD = Darwin.open(paths.root.appendingPathComponent("state/launcher.lock").path, O_CREAT | O_RDWR, 0o600)
@@ -82,6 +82,7 @@ import CryptoKit
         try preflight()
         if !FileManager.default.fileExists(atPath: paths.steam.path) { try checkDisk(game: false) }
         try await initializePrefix()
+        try await matchHostTimeZone()
         if !FileManager.default.fileExists(atPath: paths.steam.path) {
             try checkDisk(game: false)
             try await installSteam()
@@ -92,6 +93,21 @@ import CryptoKit
             if tasks.lowercased().contains("\"rdr2.exe\"") {
                 changed?("RDR2 is already running in this prefix. Switch to its window. Story Mode has not been verified by this launcher.")
                 return
+            }
+            let service = paths.prefix.appendingPathComponent("drive_c/Program Files/Rockstar Games/Launcher/RockstarService.exe")
+            if FileManager.default.fileExists(atPath: service.path) {
+                // A user client must keep Wine alive while its Windows service starts.
+                // No prefix restart, service reinstall, or registry deletion is performed.
+                try startSteam(.open)
+                let state = try await wine(["sc", "query", "Rockstar Service"], capture: true)
+                if !RockstarService.isRunning(state) {
+                    status(.launching, "Starting Rockstar’s installed background service in the same Steam environment…")
+                    try await wine(["sc", "start", "Rockstar Service"], capture: true)
+                    let started = try await wine(["sc", "query", "Rockstar Service"], capture: true)
+                    guard RockstarService.isRunning(started) else {
+                        throw LauncherError.message("Rockstar’s background service did not remain running. Keep Steam open and retry Play; the game files have not been changed.")
+                    }
+                }
             }
             status(.launching, "Starting through Steam → Rockstar. Complete sign-in in their windows. A process starting does not verify Story Mode.")
         } else if case .install = action {
@@ -110,6 +126,37 @@ import CryptoKit
         }
     }
 
+    func matchHostTimeZone() async throws {
+        if let pending = session.pendingTimeZoneBackup {
+            try await WineTimeZoneRepair.restoreMissing(backupKey: pending) { try await self.wine($0, capture: true) }
+            session.pendingTimeZoneBackup = nil
+            try paths.save(session)
+        }
+        let hostZone = TimeZone.autoupdatingCurrent.identifier
+        guard hostZone == "Africa/Johannesburg" else { return }
+        let reported = try await wine(["reg", "query", WineTimeZoneRepair.info, "/v", "TimeZoneKeyName"], capture: true)
+        guard WineTimeZoneRepair.needed(hostZone: hostZone, reported: reported) else { return }
+        let tag = "native-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)"
+        let backup = paths.root.appendingPathComponent("state/timezone-repair-\(tag)")
+        try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try FileManager.default.copyItem(at: paths.prefix.appendingPathComponent("system.reg"), to: backup.appendingPathComponent("system.reg.backup"))
+        let key = WineTimeZoneRepair.backupRoot + "\\" + tag
+        // Persist before the first registry change, so a crash between moves is
+        // repaired on the next launch without resetting any other prefix data.
+        session.pendingTimeZoneBackup = key
+        try paths.save(session)
+        status(.needsPrefix, "Matching this Windows environment’s timezone to South Africa; preserving the original definitions…")
+        try await WineTimeZoneRepair.apply(backupKey: key, year: Calendar.current.component(.year, from: Date())) { command in
+            try await self.wine(command, capture: true)
+        }
+        let journal: [String: Any] = ["prefix": paths.prefix.path, "target": WineTimeZoneRepair.target,
+                                     "backup_registry_key": key, "moved": WineTimeZoneRepair.conflicts,
+                                     "verified_windows_timezone": WineTimeZoneRepair.target, "macos_timezone_unchanged": true]
+        try JSONSerialization.data(withJSONObject: journal, options: .prettyPrinted).write(to: backup.appendingPathComponent("recovery.json"), options: .atomic)
+        session.pendingTimeZoneBackup = nil
+        try paths.save(session)
+    }
+
     func process(_ arguments: [String]) throws -> Process {
         guard let runtime else { throw LauncherError.message("The bundled runtime has not been validated.") }
         let p = Process()
@@ -124,18 +171,11 @@ import CryptoKit
 
     @discardableResult func wine(_ args: [String], capture: Bool = false) async throws -> String {
         let p = try process(args)
-        // Only tasklist is captured, into memory; never stored. Drain concurrently to avoid pipe deadlocks.
-        let pipe = capture ? Pipe() : nil
-        if let pipe { p.standardOutput = pipe }
-        let dataTask = pipe.map { output in Task.detached { output.fileHandleForReading.readDataToEndOfFile() } }
-        let code: Int32 = try await withCheckedThrowingContinuation { continuation in
-            p.terminationHandler = { child in continuation.resume(returning: child.terminationStatus) }
-            do { try p.run(); try? pipe?.fileHandleForWriting.close() }
-            catch { p.terminationHandler = nil; try? pipe?.fileHandleForWriting.close(); continuation.resume(throwing: error) }
-        }
-        let data = await dataTask?.value ?? Data()
-        guard code == 0 else { throw LauncherError.message("Wine operation failed (exit \(code)). Use Repair or retry; account output is intentionally not logged.") }
-        return String(decoding: data, as: UTF8.self)
+        // Capture only public process/service/timezone responses, never account
+        // output. The private temporary snapshot is removed after command exit.
+        let result = try await ProcessRunner.run(p, captureIn: capture ? paths.state.deletingLastPathComponent() : nil)
+        guard result.status == 0 else { throw LauncherError.message("Wine operation failed (exit \(result.status)). Use Repair or retry; account output is intentionally not logged.") }
+        return result.output
     }
 
     func initializePrefix() async throws {

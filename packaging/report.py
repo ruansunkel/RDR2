@@ -48,7 +48,7 @@ download resume, app replacement and dynamic relocation are NOT inferred from pa
 No credentials or user registry data are collected in this report.
 '''
 (output / 'TEST-REPORT.md').write_text(text)
-for name in ['build-validation.md', 'runtime-validation.md']:
+for name in ['build-validation.md', 'runtime-validation.md', 'recovery-validation.md']:
     observations = root / 'notes/evidence' / name
     if observations.is_file():
         with (output / 'TEST-REPORT.md').open('a') as report:

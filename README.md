@@ -6,27 +6,27 @@ The game uses Vulkan; DXMT serves Steam/Rockstar launcher components.
 
 **Current deliverable is a runtime-inclusive development app.** Its bundled Wine
 11 initializes a fresh prefix, and the native launcher installed and updated real
-Windows Steam on the build Mac. The user has signed in and reports RDR2 downloading.
+Windows Steam on the build Mac. The game download is complete, and Steam and Rockstar sign-in now work.
 Gameplay and a separate-host test remain unverified. See [STATUS.md](STATUS.md).
 
 Rebuild on an Apple Silicon build Mac with command-line developer tools:
 
 ```sh
 scripts/check.sh
-RDR2_BUILD_OUTPUT="$PWD/dist/host-test/RDR2Launcher.app" \
+RDR2_BUILD_OUTPUT="$PWD/dist/transfer/RDR2Launcher.app" \
   packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
-packaging/package.sh dist/host-test/RDR2Launcher.app --development
+packaging/sign-app.sh dist/transfer/RDR2Launcher.app -
+packaging/package.sh dist/transfer/RDR2Launcher.app --development
 ```
 
-The transferable app is `dist/host-test/RDR2Launcher.app`; the archive is
+The transferable app is `dist/transfer/RDR2Launcher.app`; the archive is
 `dist/RDR2Launcher-development.zip` with `dist/SHA256SUMS`. This is ad-hoc signed,
 not notarized. No Steam/game files or account state are inside it. The initial
 launcher-only preview can still be built with `--launcher-only`.
 
 The full runtime preparation, source pins, signing and remaining distribution
-requirements are in [BUILD.md](BUILD.md). The original app at
-`dist/RDR2Launcher.app` remains in place for the active build-Mac Steam session;
-use the **host-test** artifact for transfer.
+requirements are in [BUILD.md](BUILD.md). Earlier build bundles remain in place for the current Steam/Rockstar session;
+use the **transfer** artifact as the updated launcher.
 
 On first launch on the host, choose a persistent game folder and select
 **Install & Play**. Sign in within Windows Steam, select/add the mapped **R:** drive
@@ -49,9 +49,31 @@ Steam/Rockstar authentication and an owned Steam copy (1174180) are required. Ap
 manages Rosetta installation if needed; this project does not install it silently.
 No commercial wrapper, Windows VM, Apple D3DMetal or DRM bypass is part of the launcher.
 
-The active build-Mac download uses the isolated data directory
+The installed build-Mac game uses the isolated data directory
 `vendor/probes/native-steam/`. Keep using **that existing Windows Steam window**
-for download completion and Play; opening a launcher with a different data directory
+for Play; opening a launcher with a different data directory
 creates a separate prefix. Build-Mac sign-in/download state is intentionally excluded
 from the transferable app. No development tool or manually configured environment
 is needed on the host; Apple-managed Rosetta and normal client sign-ins still apply.
+
+If Steam appears to have lost the game, use **Use existing environment…** and choose
+`vendor/probes/native-steam` on this build Mac. The choice is remembered outside
+the app; **Show game files** opens the installed RDR2 directory. The game folder
+itself is not the launcher data folder. An unavailable remembered environment now
+shows an error instead of silently creating an empty replacement prefix.
+
+The completed build-Mac game is at:
+`vendor/probes/native-steam/prefixes/default/drive_c/Program Files (x86)/Steam/steamapps/common/Red Dead Redemption 2`.
+**Preserve vendor/probes/native-steam**: it now contains the downloaded game and
+its private Steam/Rockstar data. It is not disposable runtime build cache.
+
+For an installed Rockstar launcher, Play keeps Steam open and starts its registered
+background service when stopped, then verifies RUNNING before asking Steam to play.
+This service check does not reinstall the launcher or game or reset data.
+
+On Macs set to Africa/Johannesburg, the launcher corrects this pinned Wine engine's
+verified Kaliningrad timezone mismatch using per-environment backups and exact
+registry-value checks. It leaves other host timezones alone, does not change macOS
+settings and restores original definitions if the correction fails. This resolved
+the observed Rockstar #1.000.7 sign-in failure. A build-only restore helper and
+backup journals are documented in BUILD.md.

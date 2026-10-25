@@ -1,3 +1,82 @@
+# Latest verified recovery — 2026-10-25
+
+- The completed RDR2 installation was recovered in its original native-steam
+  environment. The user confirmed that Steam shows the installed game again.
+- Rockstar's registered background service remains RUNNING with Steam open; its
+  log confirms the service handshake. The user reached the sign-in page.
+- Sign-in failed with #1.000.7 while browser sign-in on the same Mac worked. Wine
+  reported Kaliningrad for the host's Africa/Johannesburg timezone. Verified,
+  backed-up moves of only the three conflicting timezone definitions made Wine
+  report South Africa Standard Time. After a Rockstar-only restart through Steam,
+  **the user confirmed Rockstar sign-in works**. The last visual report was starting
+  or loading. A later process-name query found Steam without RDR2/Rockstar, and the
+  launcher recorded RDR2 exiting with code 0x3 after about 51 seconds. A single
+  retry through Steam was requested after verifying the installed service RUNNING.
+  Wine's subsequent process list shows Launcher.exe, RockstarService.exe and
+  PlayRDR2.exe running; RDR2.exe is not yet listed. The current visual prompt is pending.
+  No main menu, gameplay or FPS claim is made; the exit's cause is unresolved.
+- No game files, sign-in data or macOS settings were reset. Backup journal:
+  vendor/probes/native-steam/state/timezone-repair-20261025T151114Z/recovery.json.
+- The updated native app remembers the existing environment, reveals game files,
+  checks/starts the installed Rockstar service and includes the validated,
+  host-specific timezone correction with verification and rollback.
+- Source validation: 8 Python tests + 16 Swift checks pass, including environment
+  recovery, command-output lifetime, timezone applicability, verified backups and
+  rollback after partial failure and recovery after an interrupted move. Final updated artifact is dist/transfer/RDR2Launcher.app.
+- The updated bundle passed ad-hoc signature/runtime verification and relocation
+  integrity at a path with spaces. Its archive passed SHA-256, per-entry CRC and
+  private client/game/account path exclusion checks. Recovery evidence is appended
+  to dist/TEST-REPORT.md. Full dynamic Wine/media smoke evidence from the unchanged
+  runtime remains recorded in notes/evidence/runtime-validation.md.
+- The active Steam/Rockstar/game environment is preserved; older bundles are not
+  replaced while its processes are using them. Developer ID/notarization, full
+  public redistribution review, separate-host validation and gameplay remain open.
+
+The earlier progress history below is historical and retained for diagnosis.
+
+---
+
+# Current recovery update — 2026-10-25
+
+The user completed the RDR2 download. The files remain at
+`vendor/probes/native-steam/prefixes/default/drive_c/Program Files (x86)/Steam/steamapps/common/Red Dead Redemption 2`.
+RDR2.exe is present (89,562,608 bytes). No game data was moved, deleted or downloaded
+again. Reopening the old GUI had selected the different default Application Support
+prefix, which is why Steam appeared to lose the game.
+
+The corrected GUI now remembers a selected existing environment outside the app,
+accepts an explicit data directory, shows that data folder and provides Show game
+files. A missing remembered folder cannot silently produce a new empty Steam prefix.
+The selection was saved for this user to the existing native-steam environment with
+its original private HOME. The user confirmed that RDR2 is restored in Steam.
+
+Rockstar's service is installed in that same prefix. Its logs showed an initial
+service setup/start failure. Starting the installed service with Steam open produced
+and retained STATE 4 RUNNING; subsequent Rockstar logs confirmed a service handshake.
+The updated Play route performs that non-destructive service check/start before
+launching through Steam. The user then saw the sign-in page; keyboard interaction
+became sufficient to submit sign-in, which returned #1.000.7. Game startup and
+controllable gameplay remain unverified.
+
+Clock checks: UTC clock agrees with the tool clock. macOS timezone is
+Africa/Johannesburg, but Wine names its UTC+2 zone Kaliningrad Standard Time.
+A process-local TZ/TZDIR probe did not fix the name. Registry/system files were
+backed up before probes; no timezone definitions, authentication state or macOS
+settings were changed. Browser sign-in comparison is pending. The user's supplied
+correlation identifier is not copied into diagnostic reports.
+
+Validation for this change: 8 Python packaging tests and 11 Swift checks pass,
+including remembered-environment persistence, missing-path fail-safe behavior,
+preserved game files when switching, selection backups and actual service-state
+parsing. The corrected development app is dist/recovered/RDR2Launcher.app. Public
+redistribution, Developer ID/notarization and clean-host/gameplay gates remain open.
+
+Preserve vendor/probes/native-steam: it now contains the downloaded game and private
+client state. Do not treat it as disposable build cache. The earlier build history
+below is retained; its downloading/old-artifact statements are historical.
+
+---
+
 # Status — 2026-10-25
 
 **Current milestone: runtime-inclusive development app; real Windows Steam installed
