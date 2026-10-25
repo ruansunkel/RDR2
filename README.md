@@ -5,11 +5,13 @@ Red Dead Redemption 2, using freely available Wine 11, patched MoltenVK and DXMT
 The game uses Vulkan; DXMT serves Steam/Rockstar launcher components.
 
 **Current deliverable is a runtime-inclusive development app.** Its bundled Wine
-11 initializes a fresh prefix, and the native launcher installed and updated real
-Windows Steam on the build Mac. The game download is complete, and Steam and Rockstar sign-in now work.
-Gameplay and a separate-host test remain unverified. See [STATUS.md](STATUS.md).
-The build VM's game window closed during startup. The next useful validation is
-the physical host; [HOST-TEST.md](HOST-TEST.md) covers transfer and reuse of the download.
+11 initializes a fresh prefix, and Steam and Rockstar sign-in work. On
+2026-10-25, the user confirmed **playable Story Mode with working controls** on a
+physical M1 Max (32 GB RAM, 32-core GPU), using a fresh host environment and copied
+game files at 1280×720 windowed with Vulkan. The first host launch stalled; a
+retry with `-ignorepipelinecache` reached gameplay, without isolating the cause.
+FPS, extended-session stability and repeat cold starts remain unmeasured.
+See [STATUS.md](STATUS.md) and [HOST-TEST.md](HOST-TEST.md) for evidence and setup.
 
 Rebuild on an Apple Silicon build Mac with command-line developer tools:
 

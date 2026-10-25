@@ -1,3 +1,41 @@
+# Physical-host Story Mode confirmed — 2026-10-25
+
+**The user confirmed: "Story Mode is playable and controls work."** The transfer
+app has now reached interactive gameplay on the physical M1 Max with a fresh host
+environment and reused game files.
+
+- The copied transfer app passed deep/strict signature and runtime-integrity
+  checks on the physical M1 Max (32 GB RAM, 32-core GPU), macOS 27.0.1 (26A434).
+  Rosetta is available. No runtime rebuild or new system tools were required.
+- Used the fresh host environment under Application Support, preserving the
+  copied build-Mac prefix. Retrying bootstrap outside the agent sandbox completed
+  the South Africa timezone correction and official Windows Steam setup/update.
+  The user confirmed Steam is signed in and displaying the library.
+- Cloned only the downloaded game to `~/Games/RDR2/steamapps/common/Red Dead
+  Redemption 2`; all 123 paths and sizes match the original. Mapped this host
+  library to `R:` and remembered the host environment in the transfer launcher.
+- Steam library registration is verified at `Z:\Users\ruansunkel\Games\RDR2`;
+  Steam recognized the installed game and launched through Rockstar. The user
+  confirmed successful Rockstar sign-in on the physical host.
+- The first host launch stalled near the end of its initial loading bar. After
+  sampling the stalled process, stopped only that game and retried through Steam
+  with a new host-game `commandline.txt` containing `-ignorepipelinecache`.
+  The user then confirmed playable Story Mode with working controls. The
+  successful retry does not isolate whether the restart, warmed caches or the
+  option changed the outcome.
+- FPS, extended-session stability and repeat cold-start reliability remain
+  unmeasured. The user subsequently exited the game intentionally. See
+  HOST-TEST.md for host evidence, including the launcher's exit diagnostic.
+- The newly written host graphics settings confirm Vulkan, 1280×720 windowed,
+  with VSync enabled; these settings were not edited during the retry.
+- Removed five confirmed disconnected processes left from before the retry,
+  verifying each process before termination. The current game was preserved
+  during cleanup; its later exit was user initiated. The final process list has
+  one current Steam client with its normal Wine/browser/service helpers and no
+  duplicate Rockstar launcher. No client state or game files were reset.
+
+---
+
 # Latest verified recovery — 2026-10-25
 
 - The completed RDR2 installation was recovered in its original native-steam
