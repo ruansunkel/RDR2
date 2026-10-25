@@ -23,6 +23,7 @@ else
 fi
 python3 "$ROOT/packaging/report.py" "$APP" "$ROOT/dist"
 cp "$ROOT/BUILD.md" "$ROOT/dist/BUILD.md"
+cp "$ROOT/HOST-TEST.md" "$ROOT/dist/HOST-TEST.md"
 /usr/bin/ditto -c -k --keepParent "$APP" "$ROOT/dist/$NAME.zip"
 (cd "$ROOT/dist" && /usr/bin/shasum -a 256 "$NAME.zip" > SHA256SUMS)
 echo "Packaged $ROOT/dist/$NAME.zip"

@@ -8,12 +8,13 @@
   reported Kaliningrad for the host's Africa/Johannesburg timezone. Verified,
   backed-up moves of only the three conflicting timezone definitions made Wine
   report South Africa Standard Time. After a Rockstar-only restart through Steam,
-  **the user confirmed Rockstar sign-in works**. The last visual report was starting
-  or loading. A later process-name query found Steam without RDR2/Rockstar, and the
+  **the user confirmed Rockstar sign-in works**. A later process-name query found Steam without RDR2/Rockstar, and the
   launcher recorded RDR2 exiting with code 0x3 after about 51 seconds. A single
   retry through Steam was requested after verifying the installed service RUNNING.
   Wine's subsequent process list shows Launcher.exe, RockstarService.exe and
-  PlayRDR2.exe running; RDR2.exe is not yet listed. The current visual prompt is pending.
+  PlayRDR2.exe running; RDR2.exe was not yet listed. The user saw a sign-in/consent
+  prompt on retry and subsequently confirmed loading continued before the window
+  closed by itself. Startup on this VM remains unsuccessful.
   No main menu, gameplay or FPS claim is made; the exit's cause is unresolved.
 - No game files, sign-in data or macOS settings were reset. Backup journal:
   vendor/probes/native-steam/state/timezone-repair-20261025T151114Z/recovery.json.
@@ -31,6 +32,10 @@
 - The active Steam/Rockstar/game environment is preserved; older bundles are not
   replaced while its processes are using them. Developer ID/notarization, full
   public redistribution review, separate-host validation and gameplay remain open.
+- Next useful validation is the physical host with its native GPU and actual RAM
+  budget. This is a change of test environment, not proof that memory or the VM GPU
+  caused exit 0x3. See HOST-TEST.md for the archive, game-file reuse and observations
+  needed. No new game launches or configuration changes were made for this handoff.
 
 The earlier progress history below is historical and retained for diagnosis.
 

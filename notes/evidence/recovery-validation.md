@@ -53,7 +53,7 @@ observations concern the 8 GB build VM, not the unavailable physical host.
 
 ## Game startup remains unresolved
 
-The user's last visual report was that the game was starting/loading. Later
+The user initially reported that the game was starting/loading. Later
 read-only process-name queries found Steam but no RDR2.exe, Rockstar frontend or
 service. Sanitized launcher events show a launch at 17:31:08 local time and game
 exit **0x3** at 17:31:59. No game Settings/system.xml was created. The code alone
@@ -62,8 +62,11 @@ After verifying no game/frontend remained and the installed service was RUNNING,
 one additional launch was requested through the same Steam installation. Wine's
 subsequent process list shows Launcher.exe, RockstarService.exe and PlayRDR2.exe
 running, with no RDR2.exe yet. A macOS process-name query missed those Windows
-processes; Wine's own tasklist is the authoritative observation. The current
-visual result is pending. No direct executable/entitlement bypass was used.
+processes; Wine's own tasklist is the authoritative observation. The user then
+reported a sign-in/consent prompt on retry, followed by continued loading and the
+window closing by itself. Game startup on the VM has not succeeded. No direct
+executable/entitlement bypass was used. The next proposed test is the physical
+host; the existing exit code does not identify a VM/GPU or memory cause.
 
 Controllable Story Mode, FPS, the physical host, Finder/Gatekeeper, Developer ID /
 notarization and full public redistribution/source review remain unverified.

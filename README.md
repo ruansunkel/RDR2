@@ -8,6 +8,8 @@ The game uses Vulkan; DXMT serves Steam/Rockstar launcher components.
 11 initializes a fresh prefix, and the native launcher installed and updated real
 Windows Steam on the build Mac. The game download is complete, and Steam and Rockstar sign-in now work.
 Gameplay and a separate-host test remain unverified. See [STATUS.md](STATUS.md).
+The build VM's game window closed during startup. The next useful validation is
+the physical host; [HOST-TEST.md](HOST-TEST.md) covers transfer and reuse of the download.
 
 Rebuild on an Apple Silicon build Mac with command-line developer tools:
 
