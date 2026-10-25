@@ -1,0 +1,38 @@
+# Build products and downloaded third-party code
+.build/
+.swiftpm/
+dist/
+vendor/
+.cache/
+*.app/
+*.dmg
+*.zip
+*.tar.gz
+*.tar.xz
+
+# Local runtime, game, account state and diagnostics
+logs/
+prefixes/
+downloads/
+*.log
+*.bak
+*.backup-*
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.key
+*.mobileprovision
+
+# macOS, Python and editor state
+.DS_Store
+._*
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+.vscode/
+*.swp
+*.xcuserstate
+xcuserdata/

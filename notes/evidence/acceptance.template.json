@@ -1,0 +1,10 @@
+{
+  "build_story_mode_controlled": {"passed": false, "observed_at": null, "report": "build-gameplay.md"},
+  "clean_host_story_mode_controlled": {"passed": false, "observed_at": null, "report": "host-gameplay.md"},
+  "finder_gatekeeper": {"passed": false, "observed_at": null, "report": "host-security.md"},
+  "no_external_runtime": {"passed": false, "observed_at": null, "report": "host-runtime.md"},
+  "relocation_with_spaces": {"passed": false, "observed_at": null, "report": "relocation.md"},
+  "app_replacement_preserves_data": {"passed": false, "observed_at": null, "report": "persistence.md"},
+  "steam_install_resume": {"passed": false, "observed_at": null, "report": "steam.md"},
+  "licenses_and_corresponding_source_reviewed": {"passed": false, "observed_at": null, "report": "licensing.md"}
+}
