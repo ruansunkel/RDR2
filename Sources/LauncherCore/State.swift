@@ -25,10 +25,10 @@ public struct DataPaths {
     public var state: URL { root.appendingPathComponent("state/session.json") }
     public var steam: URL { prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam/steam.exe") }
     public init(root: URL) { self.root = root }
-    public static func standard() throws -> DataPaths {
+    public static func standard(edition: LauncherEdition = .current) throws -> DataPaths {
         let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                  appropriateFor: nil, create: true)
-        return DataPaths(root: support.appendingPathComponent("RDR2Launcher"))
+        return DataPaths(root: support.appendingPathComponent(edition.defaultDataDirectory))
     }
     public func create() throws {
         for dir in [root, logs, downloads, state.deletingLastPathComponent(), prefix.deletingLastPathComponent()] {

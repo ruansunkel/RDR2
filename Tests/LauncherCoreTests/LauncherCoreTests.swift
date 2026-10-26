@@ -235,6 +235,32 @@ final class LauncherCoreChecks {
         XCTAssertEqual(env["GST_PLUGIN_SYSTEM_PATH_1_0"], "")
         XCTAssertTrue(env["GST_REGISTRY_1_0"]!.hasPrefix(root.path))
     }
+
+    func testExperimentalEditionsKeepSelectionAndVariablesSeparate() throws {
+        let normal = DataPaths(root: root.appendingPathComponent(LauncherEdition.standard.defaultDataDirectory))
+        let control = DataPaths(root: root.appendingPathComponent(LauncherEdition.moltenvkControl.defaultDataDirectory))
+        let candidate = DataPaths(root: root.appendingPathComponent(LauncherEdition.moltenvkCandidate.defaultDataDirectory))
+        for paths in [normal, control, candidate] { try paths.create() }
+        var original = Session(); original.library = "/original/game/library"
+        try normal.save(original)
+        let saved = try Data(contentsOf: normal.state)
+        var test = Session(); test.library = candidate.root.appendingPathComponent("SteamLibrary").path
+        try candidate.save(test)
+        try EnvironmentSelectionStore(defaultDataRoot: candidate.root).save(nil)
+        XCTAssertEqual(try Data(contentsOf: normal.state), saved)
+        XCTAssertTrue(!FileManager.default.fileExists(atPath: control.state.path))
+        let json = #"{"engineID":"x64-crossover26.3-r27","wine":"runtime/engine/bin/wine","files":[],"baseEnv":{}}"#
+        let runtime = try JSONDecoder().decode(Runtime.self, from: Data(json.utf8))
+        let normalEnv = runtime.environment(resources: root, paths: normal, edition: .standard)
+        let controlEnv = runtime.environment(resources: root, paths: control, edition: .moltenvkControl)
+        let enabled = runtime.environment(resources: root, paths: candidate, edition: .moltenvkCandidate)
+        let disabled = runtime.environment(resources: root, paths: candidate, edition: .moltenvkCandidate, treeFixEnabled: false)
+        XCTAssertNil(normalEnv["RDR2_MVK_DEDICATED_BUFFER_NO_HEAP"])
+        XCTAssertNil(controlEnv["RDR2_MVK_DEDICATED_BUFFER_NO_HEAP"])
+        XCTAssertEqual(enabled["RDR2_MVK_DEDICATED_BUFFER_NO_HEAP"], "1")
+        XCTAssertNil(disabled["RDR2_MVK_DEDICATED_BUFFER_NO_HEAP"])
+        XCTAssertEqual(enabled["RDR2_MVK_ALLOCATION_MARKER_FILE"], candidate.root.appendingPathComponent("state/tree-allocation-events.log").path)
+    }
 }
 
 @main struct CheckRunner {
@@ -251,7 +277,8 @@ final class LauncherCoreChecks {
             ("runtime path containment", checks.testTraversalAndEscapingSymlinksAreRejected),
             ("runtime integrity", checks.testChangedRuntimeBytesFailIntegrity),
             ("Steam entitlement route", checks.testSteamActionsKeepEntitlementChain),
-            ("relocated process environment", checks.testRuntimeEnvironmentIsPrivateAndRelocates)
+            ("relocated process environment", checks.testRuntimeEnvironmentIsPrivateAndRelocates),
+            ("experimental edition isolation", checks.testExperimentalEditionsKeepSelectionAndVariablesSeparate)
         ]
         for (name, test) in tests {
             try checks.setUpWithError()
@@ -268,6 +295,6 @@ final class LauncherCoreChecks {
         try await checks.testTimezonePartialFailureRestoresOriginalDefinitions()
         try await checks.testTimezoneInterruptedMoveCanResumeWithoutPrefixReset()
         print("PASS: timezone applicability, verified backups and rollback")
-        print("16 Swift core checks passed")
+        print("17 Swift core checks passed")
     }
 }

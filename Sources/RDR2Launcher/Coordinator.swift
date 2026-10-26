@@ -162,7 +162,8 @@ import CryptoKit
         let p = Process()
         p.executableURL = try Runtime.safeURL(runtime.wine, root: resources)
         p.arguments = arguments
-        p.environment = runtime.environment(resources: resources, paths: paths)
+        p.environment = runtime.environment(resources: resources, paths: paths,
+            treeFixEnabled: Bundle.main.object(forInfoDictionaryKey: "RDR2TreeFixEnabled") as? Bool ?? true)
         if let isolatedHome { p.environment?["HOME"] = isolatedHome.path }
         p.currentDirectoryURL = paths.root
         p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice

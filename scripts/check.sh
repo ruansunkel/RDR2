@@ -2,10 +2,12 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-export CLANG_MODULE_CACHE_PATH="$ROOT/.cache/clang"
-export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.cache/swift-modules"
-export PYTHONPYCACHEPREFIX="$ROOT/.cache/python"
+CACHE_ROOT="${RDR2_BUILD_CACHE_ROOT:-$ROOT/.cache}"
+SCRATCH="${RDR2_BUILD_SCRATCH:-$ROOT/.build}"
+export CLANG_MODULE_CACHE_PATH="$CACHE_ROOT/clang"
+export SWIFTPM_MODULECACHE_OVERRIDE="$CACHE_ROOT/swift-modules"
+export PYTHONPYCACHEPREFIX="$CACHE_ROOT/python"
 for script in scripts/*.sh packaging/*.sh; do bash -n "$script"; done
 python3 -m unittest discover -s Tests -v
-swift run --disable-sandbox --cache-path "$ROOT/.cache/swift" \
-    --config-path "$ROOT/.cache/swift-config" --security-path "$ROOT/.cache/swift-security" LauncherCoreChecks
+swift run --disable-sandbox --scratch-path "$SCRATCH" --cache-path "$CACHE_ROOT/swift" \
+    --config-path "$CACHE_ROOT/swift-config" --security-path "$CACHE_ROOT/swift-security" LauncherCoreChecks

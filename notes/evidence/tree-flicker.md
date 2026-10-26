@@ -1,3 +1,30 @@
+# Paused; rocks and foliage still affected — 2026-10-26
+
+The user confirmed the selected tree workaround works, then reported that rocks
+and some foliage still disappear and asked to continue another time. These
+remaining objects have not been isolated or captured. Preserve the working tree
+baseline and resume from [the checkpoint](../checkpoints/2026-10-26-rendering.md).
+
+---
+
+# Update — tree workaround confirmed, 2026-10-26
+
+The controlled GPU pair isolated a tree instance removed by the visibility compute
+step. A separate diagnostic bypasses only the HiZ rejection in that exact shader,
+guarded by SHA256 of its complete generated body. With the actual RDR2 driver
+mapping and shader activation verified, the user confirmed Story Mode readiness
+and then **"it works"**. This establishes a user-confirmed workaround in the tested
+scene. It does not establish the underlying heap defect, numeric depth contents,
+performance, other locations or extended stability. Heaps remain enabled.
+See [host evidence](../../experiments/moltenvk-trees/HOST-CANDIDATE.md).
+
+The earlier global-heap-off lead remains relevant. The dedicated-buffer experiment
+never exercised its changed path in RDR2 and did not rule out heap faults.
+The initial investigation below is historical and predates the local build tools,
+GPU captures and positive occlusion-workaround result.
+
+---
+
 # Tree flicker investigation — 2026-10-26
 
 The user reports trees disappearing and reappearing on Ultra. The suggested

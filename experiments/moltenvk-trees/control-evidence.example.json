@@ -1,0 +1,10 @@
+{
+  "engine_id": "x64-crossover26.3-r27",
+  "control_dylib_sha256": "REPLACE_WITH_THE_ACTUAL_CONTROL_HASH",
+  "loaded_dylib_sha256": "REPLACE_WITH_THE_SAME_HASH_PROVEN_IN_RDR2",
+  "story_mode_controllable": false,
+  "baseline_tree_disappearance_reproduced": false,
+  "baseline_capture": "/absolute/path/to/original-engine-camera-pan.mp4",
+  "control_capture": "/absolute/path/to/control-engine-camera-pan.mp4",
+  "loaded_library_report": "/absolute/path/to/control-loaded-in-rdr2.json"
+}

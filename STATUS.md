@@ -1,3 +1,138 @@
+# Paused checkpoint — rocks and foliage remain — 2026-10-26
+
+The user asked to park the investigation. The selected-tree workaround is
+confirmed, but **rocks and some foliage still disappear**. This is a partial
+result; those remaining objects have not yet been isolated or captured.
+
+Resume from [the rendering checkpoint](notes/checkpoints/2026-10-26-rendering.md).
+It records the working app and hashes, saved evidence, failed comparisons,
+remaining uncertainties and next investigation steps. No further game/process,
+renderer or settings changes were made while creating the checkpoint.
+
+---
+
+# Tree workaround confirmed in the tested Story Mode scene — 2026-10-26
+
+The user confirmed Story Mode readiness, then reported **"it works"** with
+`dist/tree-occlusion/RDR2 Trees Occlusion Diagnostic.app`. The exact mapped
+driver and native shader-bypass activation were independently verified. This
+is a user-confirmed workaround in the tested scene; performance, other locations
+and extended stability remain unmeasured. The running game is left untouched.
+
+The earlier controlled pair showed the same tree visible and then absent after a camera turn.
+Both one-frame GPU captures and final scene images are saved. The exact tree
+mesh is unchanged, but its compacted instance list drops from `[2, 3]` to `[2]`.
+The compute dispatch that produces that list has been identified, and its camera,
+object, transform and culling inputs were extracted with the game closed.
+
+An isolated Metal test with those inputs retains the tree when HiZ occlusion is
+disabled. Synthetic depth controls can reproduce the rejection; the original
+numeric depth texture has **not** been reproduced, so this is not proof of the
+underlying driver fault. Fast and precise math controls give the same outcome.
+
+A separate diagnostic driver bypasses only the HiZ check in the complete,
+SHA256-matched captured shader. It preserves frustum, distance and LOD checks;
+unmatched or modified shaders remain untouched. All six synthetic GPU cases
+retain the tree with this workaround. Negative guard controls and the new
+driver's seven allocation/policy checks plus query regression pass. RDR2 has loaded the exact driver, and native per-process events confirm the
+SHA256-matched shader bypass is applied. The user has now confirmed the same-scene result. This may draw extra objects
+and affect performance.
+The original/control/query-results apps and local game/save copy are preserved.
+See [working evidence](experiments/moltenvk-trees/WORKING-STATE.md).
+
+---
+
+# Initial game capture recorded; camera comparison pending — 2026-10-26
+
+The actual game produced a valid two-frame GPU trace (10.1GB). Its final images
+were replayed and exported successfully after the game closed. Both show
+essentially the same Colter camera angle, so this capture does not demonstrate
+the disappearance/reappearance transition. No tree cause or fix is established.
+
+The user agreed to a controlled pair with Arthur stationary: capture one chosen
+tree visible, then the same tree absent after turning the camera. The same
+renderer has been relaunched with capture enabled; readiness for the visible
+state is pending. No new rendering patch was added. A confirmed leftover
+PlayRDR2 bootstrap that resisted normal shutdown was terminated by exact PID
+after verifying the game was closed and backing up eight save files.
+
+---
+
+# Direct GPU capture route verified — 2026-10-26
+
+The user authorized direct rendering diagnosis and confirmed the game was closed.
+Apple's CLI captured and replayed an independent x86-64 Vulkan workload under
+Rosetta on this M1 Max. Command-tree buffer fetches returned the expected GPU-copy
+contents. No full Xcode installation was needed.
+
+The same query-results renderer was relaunched with `MTL_CAPTURE_ENABLED=1`
+after normal scoped client shutdown and verified save backups. RDR2 PID17289
+is registered as capturable, maps the exact unchanged driver, and exposes one
+WineMetalLayer frame boundary. The user has been asked to position Story Mode
+near the affected trees. An actual tree-scene capture and root cause remain
+pending. This is diagnostic preparation, not a rendering fix.
+
+---
+
+# Query-result candidate unsuccessful; tree cause still unknown — 2026-10-26
+
+A separate candidate backports upstream [MoltenVK PR2794](https://github.com/KhronosGroup/MoltenVK/pull/2794).
+A real-M1 GPU regression reproduces the baseline error and passes with the patch:
+completed nonzero-slot queries now copy the correct result and availability for
+both 32-bit and 64-bit outputs. All seven buffer/image/policy checks also pass.
+The signed app is `dist/tree-query-results/RDR2 Trees Query Results.app`, using
+the same candidate game/save copy. RDR2 maps the exact new driver, and native
+query-range activation is observed. The user confirmed that trees still disappear.
+The later native events show occlusion query use, but no nonzero-first-query or
+availability-offset/difference events. The specific faulty GPU-copy case has not
+been demonstrated in this game. GPU regression success is not progress toward a
+verified tree fix. Further visual comparison builds are deferred while gathering
+evidence of the actual failing rendering path. The current game is left alone.
+See [host evidence](experiments/moltenvk-trees/HOST-CANDIDATE.md).
+
+---
+
+# Argument-buffer-off comparison unsuccessful — 2026-10-26
+
+Revision 3 still flickers, as confirmed by the user. Its native policy is on, but
+RDR2 has reported only shared allocations and dedicated images, not the dedicated
+buffers targeted by that patch. A separate argument-buffer-off comparison ran
+with heaps still enabled. Real-GPU checks passed, and its exact driver
+mapping plus native `argument-buffers-off` event are verified in RDR2. The user
+closed the prior game before a normal, scoped test-client shutdown. No game
+redownload or settings reset was needed. The user confirmed that trees still
+disappear or change shape and then closed the game intentionally. No fix is
+verified. Investigation now includes upstream query-result correctness fixes.
+
+---
+
+# First tree candidate unsuccessful; activation diagnostics prepared — 2026-10-26
+
+The user reports that candidate 1 still shows disappearing/changing trees and
+subsequently exited by itself (Rockstar exit code 1). A failed debugger attach is
+a confounder; the exit's cause is unproven. No eligible-allocation event appeared.
+A separate revision with signed per-library policy fallback and native allocation
+diagnostics is built to distinguish configuration loss from an unused narrow
+allocation path. Its GPU checks pass, including Wine-style symlink loading; a new
+in-game comparison is pending. No tree fix is claimed. See
+[candidate evidence](experiments/moltenvk-trees/HOST-CANDIDATE.md) and
+[working checkpoint](experiments/moltenvk-trees/WORKING-STATE.md).
+
+---
+
+# Host tree-rendering candidate launched — 2026-10-26
+
+The user confirmed the rebuilt Control still shows disappearing trees and
+authorized a local candidate build. Local pinned CMake and the existing CLT built
+the candidate; full Xcode was unnecessary. Real-GPU allocation checks passed for
+control, candidate-off and candidate-on. A separate candidate app/data folder was
+prepared using local game/save copies, and RDR2 was verified mapping the exact
+patched driver. Its in-game allocation marker and same-scene visual result remain
+pending; no fix is claimed. See
+[host candidate evidence](experiments/moltenvk-trees/HOST-CANDIDATE.md).
+
+---
+
 # Tree flicker under investigation — 2026-10-26
 
 The user reports nearby and distant trees disappearing/reappearing and changing

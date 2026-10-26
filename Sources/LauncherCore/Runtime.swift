@@ -56,7 +56,8 @@ public struct Runtime: Decodable {
         return result
     }
 
-    public func environment(resources: URL, paths: DataPaths) -> [String: String] {
+    public func environment(resources: URL, paths: DataPaths,
+                            edition: LauncherEdition = .current, treeFixEnabled: Bool = true) -> [String: String] {
         // Deliberately do not inherit DYLD_*, WINE*, tokens or the developer's PATH.
         var env = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOME": FileManager.default.homeDirectoryForCurrentUser.path,
                    "TMPDIR": NSTemporaryDirectory(), "WINEPREFIX": paths.prefix.path,
@@ -70,6 +71,10 @@ public struct Runtime: Decodable {
         env["GST_PLUGIN_SYSTEM_PATH_1_0"] = ""
         env["GST_PLUGIN_SCANNER"] = fw + "/GStreamer.framework/Versions/1.0/libexec/gstreamer-1.0/gst-plugin-scanner"
         env["GST_REGISTRY_1_0"] = paths.root.appendingPathComponent("state/gstreamer-registry.bin").path
+        if edition == .moltenvkCandidate {
+            env["RDR2_MVK_DEDICATED_BUFFER_NO_HEAP"] = treeFixEnabled ? "1" : nil
+            env["RDR2_MVK_ALLOCATION_MARKER_FILE"] = paths.root.appendingPathComponent("state/tree-allocation-events.log").path
+        }
         // r27's Wine bridge finds MoltenVK through engine/lib relative symlinks;
         // no guessed ICD or DYLD_LIBRARY_PATH setting is necessary.
         return env

@@ -2,6 +2,7 @@ import AppKit
 import LauncherCore
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+    let edition = LauncherEdition.current
     var window: NSWindow!
     var coordinator: Coordinator?
     let label = NSTextField(wrappingLabelWithString: "Checking launcher…")
@@ -21,11 +22,11 @@ import LauncherCore
         environmentItem.submenu = environmentMenu; menu.addItem(environmentItem)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 650, height: 450),
                           styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-        window.title = "RDR2 Launcher — Development Build"
+        window.title = edition.displayName
         window.center()
         let title = NSTextField(labelWithString: "Red Dead Redemption 2")
         title.font = .boldSystemFont(ofSize: 24)
-        let subtitle = NSTextField(wrappingLabelWithString: "Steam edition · Story Mode · Vulkan / patched MoltenVK\nSign in only inside Steam and Rockstar. Gameplay and clean-host portability require validation.")
+        let subtitle = NSTextField(wrappingLabelWithString: edition.subtitle)
         label.font = .systemFont(ofSize: 14)
         dataLabel.font = .systemFont(ofSize: 11)
         dataLabel.textColor = .secondaryLabelColor
@@ -66,12 +67,17 @@ import LauncherCore
             }
         } catch { label.stringValue = error.localizedDescription }
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        if CommandLine.arguments.contains("--play-game") { coordinator?.perform(.play) }
     }
     func button(_ title: String, _ action: Selector) -> NSButton { NSButton(title: title, target: self, action: action) }
     func connect(_ selection: EnvironmentSelection?, remember: Bool) throws {
         guard coordinator?.busy != true else { throw LauncherError.message("Wait for the current setup operation to finish.") }
         guard let resources = Bundle.main.resourceURL else { throw LauncherError.message("Missing app resources") }
         let root = try selection?.url ?? DataPaths.standard().root
+        if edition != .standard,
+           root.standardizedFileURL.resolvingSymlinksInPath() == (try DataPaths.standard(edition: .standard).root).standardizedFileURL.resolvingSymlinksInPath() {
+            throw LauncherError.message("Choose a copied test environment. The experimental launcher uses separate data so the regular installation stays available.")
+        }
         if coordinator?.paths.root.standardizedFileURL.resolvingSymlinksInPath().path != root.standardizedFileURL.resolvingSymlinksInPath().path {
             let next = try Coordinator(resources: resources, dataRoot: root, usePrivateHome: selection?.usePrivateHome ?? false)
             if remember { try EnvironmentSelectionStore(defaultDataRoot: DataPaths.standard().root).save(selection) }
@@ -79,7 +85,7 @@ import LauncherCore
         } else if remember { try EnvironmentSelectionStore(defaultDataRoot: DataPaths.standard().root).save(selection) }
         coordinator?.changed = { [weak self] text in self?.label.stringValue = text }
         dataLabel.stringValue = "Data folder: \(root.path)"
-        window.title = "RDR2 Launcher — \(root.lastPathComponent)"
+        window.title = "\(edition.displayName) — \(root.lastPathComponent)"
     }
     @objc func existingEnvironment() {
         guard coordinator?.busy != true else { return }
@@ -135,6 +141,8 @@ if CommandLine.arguments.contains("--diagnose") {
         guard let resources = Bundle.main.resourceURL else { throw LauncherError.message("Missing app resources") }
         let runtime = try Runtime.load(resources: resources)
         print("Runtime integrity: passed; engine \(runtime.engineID)")
+        print("Launcher edition: \(LauncherEdition.current.rawValue)")
+        print("Default data folder: \(LauncherEdition.current.defaultDataDirectory)")
         print("Rosetta available: \(SystemCheck.rosettaAvailable())")
         exit(0)
     } catch { fputs("Diagnostic: \(error.localizedDescription)\n", stderr); exit(1) }

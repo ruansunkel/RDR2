@@ -1,0 +1,109 @@
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.h
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.h
+@@ -22,6 +22,10 @@
+ #include "MVKSmallVector.h"
+ #include <mutex>
+ 
++#ifndef RDR2_MVK_WHOLE_MEMORY_BUFFER
++#define RDR2_MVK_WHOLE_MEMORY_BUFFER 0
++#endif
++
+ #import <Metal/Metal.h>
+ 
+ class MVKImageMemoryBinding;
+@@ -121,6 +125,9 @@
+ 
+ 	/** Returns the Metal heap underlying this memory allocation. */
+ 	id<MTLHeap> getMTLHeap() { return _mtlHeap; }
++
++	/** Whether the isolated experiment uses one MTLBuffer for this allocation. Immutable after construction. */
++	bool usesWholeMemoryBuffer() const { return _rdr2UseWholeMemoryBuffer; }
+ 
+ 	/** Returns the Metal storage mode used by this memory allocation. */
+ 	MTLStorageMode getMTLStorageMode() { return _mtlStorageMode; }
+@@ -185,6 +192,7 @@
+ 	MTLCPUCacheMode _mtlCPUCacheMode;
+ 	bool _isDedicated = false;
+ 	bool _isHostMemImported = false;
++	bool _rdr2UseWholeMemoryBuffer = false;
+ 	// HIGHBALL EXPERIMENT: imported host memory backed by a private copy instead of no-copy.
+ 	void* _pShadowHost = nullptr;
+ 	NSUInteger _shadowLen = 0;
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
+@@ -420,6 +420,16 @@
+ 		}
+ 	}
+ 
++	// RDR2 EXPERIMENT: retain the placement heap and its existing allocation-wide
++	// buffer, but avoid creating overlapping per-VkBuffer Metal buffer objects.
++	// Exclude every imported/exportable/pre-existing Metal resource route. The
++	// choice is fixed before initExternalMemory or normal backing creation.
++#if RDR2_MVK_WHOLE_MEMORY_BUFFER
++	_rdr2UseWholeMemoryBuffer = isAppleGPU() && !dedicatedImage &&
++		!_externalMemoryHandleType && !_isHostMemImported &&
++		!_mtlBuffer && !_mtlHeap && !willExportMTLBuffer;
++#endif
++
+ 	initExternalMemory(dedicatedImage, wantsHeap);	// After setting _isDedicated
+ 
+ 	// "Dedicated" means this memory can only be used for this image or buffer.
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKBuffer.h
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKBuffer.h
+@@ -71,7 +71,7 @@
+     id<MTLBuffer> getMTLBuffer();
+ 
+ 	/** Returns the offset at which the contents of this instance starts within the underlying Metal buffer. */
+-	inline NSUInteger getMTLBufferOffset() { return !_deviceMemory || _deviceMemory->getMTLHeap() ? 0 : _deviceMemoryOffset; }
++	inline NSUInteger getMTLBufferOffset() { return !_deviceMemory || (_deviceMemory->getMTLHeap() && !usesWholeMemoryBuffer()) ? 0 : _deviceMemoryOffset; }
+     
+ 	/** Returns the GPU address for this MTLBuffer, respecting its offset. */
+ 	uint64_t getMTLBufferGPUAddress();
+@@ -92,6 +92,12 @@
+     bool overlaps(VkDeviceSize offset, VkDeviceSize size, VkDeviceSize &overlapOffset, VkDeviceSize &overlapSize);
+ 	void initExternalMemory(VkExternalMemoryHandleTypeFlags handleTypes);
+ 	void detachMemory();
++
++	// External-compatible VkBuffers retain their existing Metal representation.
++	// The allocation policy is immutable, so buffer selection and offsets agree.
++	bool usesWholeMemoryBuffer() const {
++		return !_externalMemoryHandleTypes && _deviceMemory && _deviceMemory->usesWholeMemoryBuffer();
++	}
+ 
+ 	VkBufferUsageFlags2 _usage;
+ 	id<MTLBuffer> _mtlBuffer = nil;
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKBuffer.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKBuffer.mm
+@@ -20,6 +20,7 @@
+ #include "MVKCommandBuffer.h"
+ #include "MVKFoundation.h"
+ #include "mvk_datatypes.hpp"
++#include <atomic>
+ 
+ using namespace std;
+ 
+@@ -151,7 +152,7 @@
+ id<MTLBuffer> MVKBuffer::getMTLBuffer() {
+ 	if (_mtlBuffer) { return _mtlBuffer; }
+ 	if (_deviceMemory) {
+-		if (_deviceMemory->getMTLHeap()) {
++		if (_deviceMemory->getMTLHeap() && !usesWholeMemoryBuffer()) {
+             lock_guard<mutex> lock(_lock);
+             if (_mtlBuffer) { return _mtlBuffer; }
+ 			id<MTLBuffer> buf = [_deviceMemory->getMTLHeap() newBufferWithLength: getByteCount()
+@@ -163,6 +164,15 @@
+ 			propagateDebugName();
+ 			return _mtlBuffer;
+ 		} else {
++			if (_deviceMemory->getMTLHeap() && usesWholeMemoryBuffer()) {
++				static std::atomic<bool> reported(false);
++				if (!reported.exchange(true)) {
++					MVKLogInfo("RDR2 EXPERIMENT whole-memory-buffer: using allocation-wide Metal buffers while preserving placement heaps and image aliasing.");
++				}
++			}
++			// addBuffer() already ensures this allocation-wide buffer exists.
++			// It is borrowed here, exactly as in the original non-heap path;
++			// do not store it in _mtlBuffer or release its memory-owned reference.
+ 			return _deviceMemory->getMTLBuffer();
+ 		}
+ 	}

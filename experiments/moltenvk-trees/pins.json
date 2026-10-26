@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "engine_id": "x64-crossover26.3-r27",
+  "architecture": "x86_64",
+  "macos_deployment_target": "14.0",
+  "highball_commit": "cabadb4cfaaad0ece66f7fad2206fdd7a0b41ffb",
+  "moltenvk": {
+    "repository": "https://github.com/KhronosGroup/MoltenVK.git",
+    "tag": "v1.4.2",
+    "commit": "db66022459ffb663aa2b50f6b018bc2e124f5edf",
+    "reference_archive_sha256": "7c84c592c023e761994cf4a0f5fb2e0a8a22bac8dfe3f787c4135a735f873e90",
+    "reference_dylib_sha256": "294e9ef77c6036ab4f4d93117d752b6e31fa6c8c4345bc085e062a6ee3ced80a",
+    "metal_private_api": false,
+    "patches": [
+      {
+        "file": "moltenvk-shadow-import.patch",
+        "sha256": "ca4919663df7f8835b28eeb827c25b9884fc9c32620eff4d2f23c59225f81c84"
+      },
+      {
+        "file": "moltenvk-linear-fallback.patch",
+        "sha256": "2ff3653d0e0951d95069baa4c9c491772d6e2a3f754d6afe0233fafde034aa41"
+      },
+      {
+        "file": "moltenvk-shadow-readback.patch",
+        "sha256": "023eeffbf45523228bb631c44ef9d7edfff4d90828551fa949cbdb6b6626f157"
+      }
+    ],
+    "control_files": {
+      "MoltenVK/MoltenVK/Commands/MVKCmdQueries.mm": "cab49d95953e943e1243cbdfda52096194027a5250ffdcd4944d7fcf25b7d6f3",
+      "MoltenVK/MoltenVK/Commands/MVKCmdTransfer.mm": "48d3ec9a1fd44c7f87b9b82d4f2c9d26f009aa339dcabf7342dd7022015a29ee",
+      "MoltenVK/MoltenVK/Commands/MVKCommandBuffer.h": "f34b8335bc4f4f531a4b17bbbaa2307b66a8219d53a11471c70758b3cd2b894f",
+      "MoltenVK/MoltenVK/Commands/MVKCommandBuffer.mm": "979f6ff5993dcc8965d3bf4d775841c3c77f414879869e8b13391c10e7976304",
+      "MoltenVK/MoltenVK/GPUObjects/MVKDevice.h": "f43382bf5500cbc0e7b314e08a668558cdc82249677161435f917deaf25d4605",
+      "MoltenVK/MoltenVK/GPUObjects/MVKDevice.mm": "a50632763e42d79f1d19948714a5191bd72622624b6004ac34a840e69039f7cc",
+      "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.h": "3af880ed1c5d446ec9272174de0c19226436b2699e87d5f0bd7e928868589744",
+      "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "c4ecc03a31f45644d7fe3e92a5294e8858cd56a469070c578305d140de7ac02f",
+      "MoltenVK/MoltenVK/GPUObjects/MVKImage.mm": "ea500e85f8a3aac2226a4230396caf5bb782dcca0a550a5a192fddd43d01b2b3",
+      "MoltenVK/MoltenVK/GPUObjects/MVKQueue.mm": "57227267dd4c6aaefc8c166b565c64979ab7a82fd77553c3301cf9b5eab61daa"
+    }
+  },
+  "fork": {
+    "repository": "https://github.com/whitebelyash/MoltenVK-RDR2.git",
+    "commit": "b86c21db33ee71eb012c0c95dc7b2ff4cf9d2050",
+    "upstream_base": "0ecb1dc5410ed0e12f64fec4f0d381dec8817b1a",
+    "heap_commit": "ddb06d66ef100f165f00d21d9d2b1e37c90f932a",
+    "argument_buffer_commit": "59d34ab41d2506fcb2c3511f76f3f38e9486a45f"
+  },
+  "candidate": {
+    "file": "moltenvk-dedicated-buffer-no-heap.patch",
+    "sha256": "665f70a7cabb7b236aa1c700ea0ad546351399460623f49cc4946befec30df0e",
+    "environment_variable": "RDR2_MVK_DEDICATED_BUFFER_NO_HEAP",
+    "files": {
+      "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "252f14356af26dfed7ce57441b431ee654e97584a41377fca1d4be82179b14da"
+    },
+    "status": "diagnostic candidate; optional separate argument-buffer-off build; visual fix unverified",
+    "variants": {
+      "candidate-query-results": {
+        "upstream_commit": "701747d61a0484e91c205e081a24ca592ffa12b4",
+        "upstream_pull_request": "https://github.com/KhronosGroup/MoltenVK/pull/2794",
+        "patches": [
+          {
+            "file": "moltenvk-query-result-range.patch",
+            "sha256": "9cb8eb3b4859870668e2159569bd123cd993a0d94a95354cd41714fa83859a59"
+          },
+          {
+            "file": "moltenvk-query-diagnostics.patch",
+            "sha256": "15c7cce566280aeaf22061c190cee1d5d5702be87d54b90ec96c41b7645326c9"
+          }
+        ],
+        "files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "3072ec021d0af94da71920695ff32fe634c8d953fcd30d23a8741962cb802af2",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm": "4028898581c349777766baaed7c5bee3af0f3ef7215cb7c2434d7ddb76ab3a21",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.h": "aa9baa23f878d04039cf1ad5ca98ee0526f79d4b20aa1c8468e854ded1bf4f4b"
+        },
+        "status": "upstream correctness backport; GPU regression and RDR2 visual verification pending"
+      },
+      "candidate-tree-occlusion": {
+        "patches": [
+          {
+            "file": "moltenvk-query-result-range.patch",
+            "sha256": "9cb8eb3b4859870668e2159569bd123cd993a0d94a95354cd41714fa83859a59"
+          },
+          {
+            "file": "moltenvk-query-diagnostics.patch",
+            "sha256": "15c7cce566280aeaf22061c190cee1d5d5702be87d54b90ec96c41b7645326c9"
+          },
+          {
+            "file": "moltenvk-captured-tree-hiz-bypass.patch",
+            "sha256": "d719b82a2068f23aa701b69a6b0056b7a16ed43b3aeb767944d0b60a18614aae"
+          }
+        ],
+        "files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "3072ec021d0af94da71920695ff32fe634c8d953fcd30d23a8741962cb802af2",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm": "4028898581c349777766baaed7c5bee3af0f3ef7215cb7c2434d7ddb76ab3a21",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.h": "aa9baa23f878d04039cf1ad5ca98ee0526f79d4b20aa1c8468e854ded1bf4f4b",
+          "MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm": "11bfd4eaefacda9640a2a6329accd283bf07ab353bd84e8bc99c8fbb962cce62"
+        },
+        "added_files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h": "a6da3c1d4833f2e18135d5ad5e9f3e301196fdc20b6af0e2bed09f58ea8e2045"
+        },
+        "status": "diagnostic workaround for exactly one captured culling shader; original depth data not reproduced; visual fix unverified"
+      }
+    }
+  },
+  "cmake": {
+    "version": "3.31.8",
+    "url": "https://cmake.org/files/v3.31/cmake-3.31.8-macos-universal.tar.gz",
+    "sha256": "d1449f969c54d5c00886d5b643340d493dfb3c81cb39ee29b35453395c11ebf7",
+    "directory": "cmake-3.31.8-macos-universal"
+  },
+  "cpm": {
+    "version": "0.40.8",
+    "url": "https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.40.8/CPM.cmake",
+    "sha256": "78ba32abdf798bc616bab7c73aac32a17bbd7b06ad9e26a6add69de8f3ae4791"
+  },
+  "dependencies": {
+    "Vulkan-Tools": "8c66b352925cb771f793a4d3220b1321ae0febf1",
+    "SPIRV-Headers": "29981f65241605e08b0ede4cfeb999fe3b723c6a",
+    "SPIRV-Cross": "6c09849fe88c48eaed08413aa022aaa136a3a057",
+    "Volk": "776893306c5d3b22b6185b5d4a258b81d94572bf",
+    "Vulkan-Headers": "e3b1eec08173d6b825cd3ac88c885a63b621504a",
+    "cereal": "a56bad8bbb770ee266e930c95d37fff2a5be7fea",
+    "SPIRV-Tools": "0d6fd73ca73830ccab5fa1f00ed5ed40124e2c55"
+  },
+  "highball_r27_manifest_commit": "516da2758e699123ceee83b9a116bd28ceaaadf2",
+  "historical_highball_files": {
+    "Scripts/build-moltenvk.sh": "10f4d403edb695289a046e61dcac3284c7164d3100fdaee309f207edc9cfcb74",
+    "spike/patches/moltenvk-shadow-import.patch": "ca4919663df7f8835b28eeb827c25b9884fc9c32620eff4d2f23c59225f81c84",
+    "spike/patches/moltenvk-linear-fallback.patch": "2ff3653d0e0951d95069baa4c9c491772d6e2a3f754d6afe0233fafde034aa41",
+    "spike/patches/moltenvk-shadow-readback.patch": "023eeffbf45523228bb631c44ef9d7edfff4d90828551fa949cbdb6b6626f157"
+  }
+}

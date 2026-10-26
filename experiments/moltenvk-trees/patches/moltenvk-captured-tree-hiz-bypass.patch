@@ -1,0 +1,59 @@
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm
+@@ -17,6 +17,8 @@
+  */
+ 
+ #include "MVKShaderModule.h"
++#include "MVKRDR2TreeOcclusion.h"
++extern void mvkRDR2TreeDiagnostic(const char* event);
+ #include "MVKPipeline.h"
+ #include "MVKFoundation.h"
+ #include <sys/stat.h>
+@@ -228,7 +230,14 @@
+ void MVKShaderLibrary::compileLibrary(const string& msl,
+ 									  const vector<pair<uint32_t, MVKShaderMacroValue> >* specializationMacroDef) {
+ 	MVKShaderLibraryCompiler* slc = new MVKShaderLibraryCompiler(_owner);
+-	NSString* nsSrc = [[NSString alloc] initWithUTF8String: msl.c_str()];	// temp retained
++	std::string diagnosticMSL = msl;
++	std::string fingerprint;
++	bool bypassed = rdr2BypassCapturedTreeHiZ(diagnosticMSL, &fingerprint);
++	if (!fingerprint.empty()) {
++		mvkRDR2TreeDiagnostic((std::string("tree-hiz-source-") + fingerprint).c_str());
++		mvkRDR2TreeDiagnostic(bypassed ? "tree-hiz-bypass-applied" : "tree-hiz-bypass-not-applied");
++	}
++	NSString* nsSrc = [[NSString alloc] initWithUTF8String: diagnosticMSL.c_str()];	// temp retained
+ 
+ 	// If specialization macro is used, translate the id to macro information and pass it to compiler
+ 	vector<pair<MSLSpecializationMacroInfo, MVKShaderMacroValue>> macro_def;
+--- /dev/null
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h
+@@ -0,0 +1,29 @@
++// Diagnostic workaround for the exact culling shader isolated in a paired RDR2
++// GPU capture. This is not a general MoltenVK correctness fix.
++#pragma once
++#include <CommonCrypto/CommonDigest.h>
++#include <cstdlib>
++#include <cstring>
++#include <string>
++
++static bool rdr2BypassCapturedTreeHiZ(std::string& source, std::string* fingerprint = nullptr) {
++    const char* branch = "if (((*spvDescriptorSet0.m_12)._m0[0u]._m5 != 0u) && _544)";
++    auto pos = source.find(branch);
++    auto start = source.find("#include <metal_stdlib>");
++    if (pos == std::string::npos || start == std::string::npos) return false;
++    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
++    CC_SHA256(source.data() + start, (CC_LONG)(source.size() - start), digest);
++    char hex[CC_SHA256_DIGEST_LENGTH * 2 + 1];
++    const char* digits = "0123456789abcdef";
++    for (unsigned n = 0; n < CC_SHA256_DIGEST_LENGTH; ++n) {
++        hex[n * 2] = digits[digest[n] >> 4]; hex[n * 2 + 1] = digits[digest[n] & 15];
++    }
++    hex[sizeof(hex) - 1] = 0;
++    if (fingerprint) *fingerprint = hex;
++    if (std::strcmp(hex, "90e7d5ac9626967e6be1eaf4e29b4279d792c198f0a557ca321c6a506f4edeb6")) return false;
++    if (const char* enabled = std::getenv("RDR2_MVK_TREE_HIZ_BYPASS")) {
++        if (std::strcmp(enabled, "1")) return false;
++    }
++    source.replace(pos, std::strlen(branch), "if (false) // RDR2 captured-tree HiZ diagnostic bypass");
++    return true;
++}

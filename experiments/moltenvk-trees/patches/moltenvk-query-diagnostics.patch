@@ -1,0 +1,64 @@
+# Fixed diagnostic markers for the query-result backport. No query values or shader data.
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
+@@ -99,6 +99,11 @@
+ 		return value;
+ 	}();
+ 	return config;
++}
++
++// Fixed diagnostics shared with the query-result backport; records no query values.
++void mvkRDR2TreeDiagnostic(const char* event) {
++	rdr2MemoryExperiment().emit(event);
+ }
+ 
+ 
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm
+@@ -24,6 +24,9 @@
+ #include "MVKOSExtensions.h"
+ #include "MVKFoundation.h"
+ #include <sys/mman.h>
++#include <atomic>
++
++extern void mvkRDR2TreeDiagnostic(const char* event);
+ 
+ using namespace std;
+ 
+@@ -101,6 +104,9 @@
+ }
+ 
+ bool MVKQueryPool::areQueriesDeviceAvailable(uint32_t firstQuery, uint32_t queryCount) {
++	static std::atomic<bool> reported(false), reportedNonzero(false);
++	if (!reported.exchange(true)) { mvkRDR2TreeDiagnostic("query-range-fix"); }
++	if (firstQuery && !reportedNonzero.exchange(true)) { mvkRDR2TreeDiagnostic("query-range-nonzero-first"); }
+ 	uint32_t endQuery = firstQuery + queryCount;
+     for (uint32_t query = firstQuery; query < endQuery; query++) {
+         if ( _availability[query] < DeviceAvailable ) { return false; }
+@@ -183,6 +189,17 @@
+ 		state.bindStructBytes(mtlComputeCmdEnc, &queryCount, 3);
+ 		state.bindStructBytes(mtlComputeCmdEnc, &flags,      4);
+ 		_availabilityLock.lock();
++		static std::atomic<bool> reportedOffset(false);
++		if (firstQuery && !reportedOffset.exchange(true)) { mvkRDR2TreeDiagnostic("query-availability-offset-applied"); }
++		static std::atomic<bool> reportedDifference(false);
++		if (firstQuery && !reportedDifference.load()) {
++			for (uint32_t q = 0; q < queryCount; ++q) {
++				if ((_availability[q] == Initial) != (_availability[firstQuery + q] == Initial)) {
++					if (!reportedDifference.exchange(true)) { mvkRDR2TreeDiagnostic("query-availability-status-differs"); }
++					break;
++				}
++			}
++		}
+ 		cmdEncoder->setComputeBytes(mtlComputeCmdEnc, _availability.data() + firstQuery, queryCount * sizeof(Status), 5);
+ 		_availabilityLock.unlock();
+ 
+@@ -234,6 +251,8 @@
+ void MVKOcclusionQueryPool::propagateDebugName() { setMetalObjectLabel(_visibilityResultMTLBuffer, _debugName); }
+ 
+ void MVKOcclusionQueryPool::beginQuery(uint32_t query, VkQueryControlFlags flags, MVKCommandEncoder* cmdEncoder) {
++	static std::atomic<bool> reported(false);
++	if (!reported.exchange(true)) { mvkRDR2TreeDiagnostic("occlusion-query-used"); }
+     MVKQueryPool::beginQuery(query, flags, cmdEncoder);
+     cmdEncoder->beginOcclusionQuery(this, query, flags);
+ }

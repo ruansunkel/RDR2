@@ -2,8 +2,10 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-export CLANG_MODULE_CACHE_PATH="$ROOT/.cache/clang"
-export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.cache/swift-modules"
+CACHE_ROOT="${RDR2_BUILD_CACHE_ROOT:-$ROOT/.cache}"
+SCRATCH="${RDR2_BUILD_SCRATCH:-$ROOT/.build}"
+export CLANG_MODULE_CACHE_PATH="$CACHE_ROOT/clang"
+export SWIFTPM_MODULECACHE_OVERRIDE="$CACHE_ROOT/swift-modules"
 MODE="${1:---runtime}"
 RUNTIME="${2:-}"
 APP="${RDR2_BUILD_OUTPUT:-$ROOT/dist/RDR2Launcher.app}"
@@ -20,9 +22,9 @@ fi
 if [[ -e "$APP" ]]; then
     mv "$APP" "$APP.backup-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 fi
-swift build -c release --arch arm64 --product RDR2Launcher --build-system native -debug-info-format none --disable-sandbox --cache-path "$ROOT/.cache/swift" \
-    --config-path "$ROOT/.cache/swift-config" --security-path "$ROOT/.cache/swift-security"
-BIN="$(swift build -c release --arch arm64 --build-system native --show-bin-path --disable-sandbox --cache-path "$ROOT/.cache/swift" --config-path "$ROOT/.cache/swift-config" --security-path "$ROOT/.cache/swift-security")"
+swift build -c release --arch arm64 --product RDR2Launcher --build-system native -debug-info-format none --disable-sandbox --scratch-path "$SCRATCH" --cache-path "$CACHE_ROOT/swift" \
+    --config-path "$CACHE_ROOT/swift-config" --security-path "$CACHE_ROOT/swift-security"
+BIN="$(swift build -c release --arch arm64 --build-system native --show-bin-path --disable-sandbox --scratch-path "$SCRATCH" --cache-path "$CACHE_ROOT/swift" --config-path "$CACHE_ROOT/swift-config" --security-path "$CACHE_ROOT/swift-security")"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/recipes" "$APP/Contents/Frameworks"
 cp "$BIN/RDR2Launcher" "$APP/Contents/MacOS/"
 python3 packaging/runtime_tools.py prune-launcher-rpaths "$APP"

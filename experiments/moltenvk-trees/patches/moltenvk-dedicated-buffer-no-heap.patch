@@ -1,0 +1,113 @@
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm
+@@ -27,8 +27,79 @@
+ #include <os/lock.h>
+ #include <algorithm>
+ #include <atomic>
++#include <cstring>
++#include <cstdio>
++#include <fcntl.h>
++#include <unistd.h>
++#include <dlfcn.h>
++#include <pwd.h>
++#include <string>
++#include <limits.h>
+ 
+ using namespace std;
++
++// The signed per-library policy is a fallback for Windows launchers that do not
++// preserve the native Unix environment. Explicit environment values still win.
++struct RDR2MemoryExperiment {
++	bool enabled = false;
++	std::string markerPath;
++	void emit(const char* event) const {
++		if (markerPath.empty()) { return; }
++		int fd = open(markerPath.c_str(), O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0600);
++		if (fd >= 0) {
++			char line[128];
++			int count = std::snprintf(line, sizeof(line), "pid=%ld %s\n", (long)getpid(), event);
++			if (count > 0 && count < (int)sizeof(line)) { (void)write(fd, line, (size_t)count); }
++			close(fd);
++		}
++	}
++};
++
++static const RDR2MemoryExperiment& rdr2MemoryExperiment() {
++	static const RDR2MemoryExperiment config = [] {
++		RDR2MemoryExperiment value;
++		std::string dataDirectory;
++		Dl_info own = {};
++		if (dladdr((void*)&rdr2MemoryExperiment, &own) && own.dli_fname) {
++			char canonical[PATH_MAX];
++			std::string path(realpath(own.dli_fname, canonical) ? canonical : own.dli_fname);
++			auto slash = path.find_last_of('/');
++			if (slash != std::string::npos) {
++				path = path.substr(0, slash + 1) + "rdr2-tree-policy.conf";
++				FILE* file = std::fopen(path.c_str(), "r");
++				if (file) {
++					char line[256];
++					if (std::fgets(line, sizeof(line), file) && std::strcmp(line, "RDR2_TREE_POLICY_V1\n") == 0) {
++						while (std::fgets(line, sizeof(line), file)) {
++							std::string entry(line);
++							if (!entry.empty() && entry.back() == '\n') { entry.pop_back(); }
++							if (entry == "enabled=1") { value.enabled = true; }
++							if (entry == "enabled=0") { value.enabled = false; }
++							if (entry.compare(0, 15, "data_directory=") == 0) { dataDirectory = entry.substr(15); }
++						}
++					}
++					std::fclose(file);
++				}
++			}
++		}
++		if (const char* setting = std::getenv("RDR2_MVK_DEDICATED_BUFFER_NO_HEAP")) {
++			value.enabled = std::strcmp(setting, "1") == 0;
++		}
++		if (const char* marker = std::getenv("RDR2_MVK_ALLOCATION_MARKER_FILE")) {
++			if (marker[0] == '/') { value.markerPath = marker; }
++		}
++		if (value.markerPath.empty() && !dataDirectory.empty() && dataDirectory.size() <= 80 &&
++			dataDirectory.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") == std::string::npos) {
++			struct passwd user = {}, *result = nullptr;
++			char buffer[16384];
++			if (getpwuid_r(getuid(), &user, buffer, sizeof(buffer), &result) == 0 && result && user.pw_dir) {
++				value.markerPath = std::string(user.pw_dir) + "/Library/Application Support/" + dataDirectory + "/state/tree-allocation-events.log";
++			}
++		}
++		return value;
++	}();
++	return config;
++}
+ 
+ 
+ #pragma mark MVKDeviceMemory
+@@ -420,6 +491,30 @@
+ 		}
+ 	}
+ 
++	// RDR2 EXPERIMENT: isolate only dedicated, non-external buffer allocations.
++	// Images and mixed/suballocated memory retain placement heaps and aliasing.
++	const auto& experiment = rdr2MemoryExperiment();
++	static std::atomic<bool> reportedPolicy(false);
++	if (!reportedPolicy.exchange(true)) {
++		experiment.emit(experiment.enabled ? "policy-on" : "policy-off");
++		experiment.emit(getMVKConfig().useMetalArgumentBuffers ? "argument-buffers-on" : "argument-buffers-off");
++	}
++	unsigned kind = dedicatedBuffer ? 1u : (dedicatedImage ? 2u : 4u);
++	static std::atomic<unsigned> reportedKinds(0);
++	if (!(reportedKinds.fetch_or(kind) & kind)) {
++		experiment.emit(dedicatedBuffer ? "kind-dedicated-buffer" : (dedicatedImage ? "kind-dedicated-image" : "kind-shared"));
++	}
++	bool dedicatedBuffersWithoutHeaps = experiment.enabled;
++	if (dedicatedBuffersWithoutHeaps && isAppleGPU() && dedicatedBuffer && !dedicatedImage &&
++		!_externalMemoryHandleType && !_isHostMemImported && !_mtlBuffer && !_mtlHeap && !willExportMTLBuffer) {
++		wantsHeap = false;
++		static std::atomic<bool> reported(false);
++		if (!reported.exchange(true)) {
++			MVKLogInfo("RDR2 EXPERIMENT dedicated-buffer-no-heap: eligible dedicated buffers use standalone Metal buffers; image heaps remain enabled.");
++			experiment.emit("dedicated-buffer-no-heap");
++		}
++	}
++
+ 	initExternalMemory(dedicatedImage, wantsHeap);	// After setting _isDedicated
+ 
+ 	// "Dedicated" means this memory can only be used for this image or buffer.
