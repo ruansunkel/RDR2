@@ -1,3 +1,15 @@
+# Tree flicker under investigation — 2026-10-26
+
+The user reports nearby and distant trees disappearing/reappearing and changing
+shape on Ultra, persisting after the suggested Tree Quality High comparison.
+Similar tree flicker remains unresolved in the upstream reports reviewed;
+reviewed Highball r28/r29 manifests use the same MoltenVK component as this r27
+build. No graphics settings or runtime binaries were changed during this
+investigation; no fix is claimed. See
+[tree-flicker evidence](notes/evidence/tree-flicker.md).
+
+---
+
 # Physical-host Story Mode confirmed — 2026-10-25
 
 **The user confirmed: "Story Mode is playable and controls work."** The transfer
