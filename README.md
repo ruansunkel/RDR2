@@ -1,5 +1,7 @@
 # RDR2 Launcher for Apple Silicon
 
+Quick commands: [How to build & run](BUILD-AND-RUN.md).
+
 A native macOS launcher and repeatable packaging tools for the Steam edition of
 Red Dead Redemption 2, using freely available Wine 11, patched MoltenVK and DXMT.
 The game uses Vulkan; DXMT serves Steam/Rockstar launcher components.
