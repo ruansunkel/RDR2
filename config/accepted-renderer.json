@@ -3,5 +3,10 @@
   "sha256": "b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce",
   "artifact": "vendor/renderer/current",
   "runtime": "vendor/rdr2-runtime-r27-portable-v3",
-  "data_directory": "RDR2Launcher"
+  "data_directory": "RDR2Launcher",
+  "without_occlusion_fixes": {
+    "mode": "candidate-query-results",
+    "sha256": "9c0161edaff3b40615a4ae69ac5c71bc3e07389705e2a2291bc3f40c3eb24701",
+    "artifact": "vendor/renderer/without-occlusion"
+  }
 }

@@ -143,6 +143,9 @@ if CommandLine.arguments.contains("--diagnose") {
         print("Runtime integrity: passed; engine \(runtime.engineID)")
         print("Launcher edition: \(LauncherEdition.current.rawValue)")
         print("Default data folder: \(LauncherEdition.current.defaultDataDirectory)")
+        if let included = Bundle.main.object(forInfoDictionaryKey: "RDR2OcclusionFixesIncluded") as? Bool {
+            print("Occlusion workarounds: \(included ? "included" : "not included")")
+        }
         print("Rosetta available: \(SystemCheck.rosettaAvailable())")
         exit(0)
     } catch { fputs("Diagnostic: \(error.localizedDescription)\n", stderr); exit(1) }

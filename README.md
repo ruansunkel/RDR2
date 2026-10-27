@@ -34,6 +34,21 @@ It verifies the renderer checksum, source pins, runtime integrity and signatures
 before replacing the previous main app. A failed build leaves that app intact.
 Run `scripts/launch-rdr2.sh --diagnose` for an integrity check without starting the game.
 
+For graphics checks using the same installed game, build the comparison app:
+
+```sh
+scripts/build.sh --without-occlusion-fixes
+open dist/RDR2GraphicsCheck.app
+```
+
+This renderer omits the tree, foliage/grass and rock occlusion workarounds.
+The earlier allocation and query changes remain included. Both apps use the
+existing `~/Library/Application Support/RDR2Launcher/` prefix, game library,
+saves and sign-ins. Rebuilding does not create a new game installation.
+Quit RDR2, exit Windows Steam/Rockstar and close the launcher before switching
+apps so the new session loads the selected renderer. The comparison app has a
+distinct name and bundle identifier; the regular main app is preserved.
+
 The two retained local inputs are `vendor/rdr2-runtime-r27-portable-v3/` and
 `vendor/renderer/current/`. The accepted renderer checksum is tracked in
 `config/accepted-renderer.json`. Rebuilding the launcher uses Apple command-line
@@ -42,6 +57,9 @@ Compiling a changed MoltenVK driver remains the separate pinned workflow under
 `experiments/moltenvk-trees/`; this command deliberately requires the tested binary.
 This app is ad-hoc signed, not notarized. It contains no Steam/game files or
 account state. The launcher-only preview remains available with `--launcher-only`.
+
+The comparison build also requires `vendor/renderer/without-occlusion/`, a
+retained pinned driver built before the three shader workarounds were added.
 
 The full runtime preparation, source pins, signing and remaining distribution
 requirements are in [BUILD.md](BUILD.md). See

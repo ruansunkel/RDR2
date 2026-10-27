@@ -24,7 +24,9 @@ public enum LauncherEdition: String {
 
     public var displayName: String {
         switch self {
-        case .standard, .patched: return "RDR2 Launcher"
+        case .standard: return "RDR2 Launcher"
+        case .patched:
+            return Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "RDR2 Launcher"
         case .moltenvkControl: return "RDR2 MoltenVK Control"
         case .moltenvkCandidate:
             return Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "RDR2 Tree Experiment"

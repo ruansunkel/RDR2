@@ -20,6 +20,31 @@ with the `patched` edition. The tested prefix, game library and sign-ins were
 migrated there; the earlier folder at that name was archived. See
 [the migration record](notes/data-folder-migration-2026-10-27.md).
 
+For a comparison that omits the three captured-shader HiZ workarounds:
+
+```sh
+scripts/build.sh --without-occlusion-fixes
+open dist/RDR2GraphicsCheck.app
+```
+
+This packages `vendor/renderer/without-occlusion/` (pinned mode
+`candidate-query-results`), whose renderer contains none of the tree,
+foliage/grass or rigid-rock helper code. Its earlier allocation/query changes,
+image heaps and argument buffers remain enabled. This is a selective comparison,
+not an unmodified upstream driver. Both apps use the same `patched` edition,
+permanent data folder, remembered environment and installed game. The build
+does not copy, recreate or reset the prefix/game files. Exit the game, Windows
+Steam/Rockstar and the launcher before switching apps; an existing Wine/client
+session can retain the prior app's loaded renderer.
+
+The comparison defaults to `dist/RDR2GraphicsCheck.app` with a distinct name
+and bundle identifier, preserving the regular main app. `--output` overrides
+the destination for either profile. `--diagnose` reports whether the three
+workarounds are included. Checksums and common/selected source pins are verified;
+later unrelated variants need not exist in the older comparison build metadata.
+Compiled helper markers must also match the chosen profile. Each app build
+still recompiles the launcher and packages a retained renderer binary.
+
 This command rebuilds the launcher, not MoltenVK itself. To modify/recompile
 MoltenVK, use the pinned research build/probe workflow under
 `experiments/moltenvk-trees/`. Its private evidence and downloaded source/build

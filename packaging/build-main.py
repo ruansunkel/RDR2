@@ -23,9 +23,18 @@ def digest(path):
 
 def validate_artifact(artifact, accepted, pins):
     metadata = json.loads((artifact / 'build.json').read_text())
+    recorded = metadata.get('pins', {})
+    if accepted['mode'] == 'candidate-query-results':
+        # The earlier build predates later variants. Require every common pin
+        # and the exact selected variant, without depending on unrelated ones.
+        def selected_pins(value):
+            candidate = dict(value.get('candidate', {}))
+            candidate['variants'] = {accepted['mode']: candidate.get('variants', {}).get(accepted['mode'])}
+            return dict(value, candidate=candidate)
+        recorded, pins = selected_pins(recorded), selected_pins(pins)
     if (metadata.get('mode') != accepted['mode'] or
             metadata.get('architecture') != 'x86_64' or
-            metadata.get('pins') != pins or
+            recorded != pins or
             metadata.get('sha256') != accepted['sha256'] or
             digest(artifact / 'libMoltenVK.dylib') != accepted['sha256']):
         raise ValueError('Renderer differs from the accepted build; rebuild/validate it through experiments/moltenvk-trees first')
@@ -38,16 +47,28 @@ def run(*args, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=ROOT / 'dist/RDR2Launcher.app')
+    parser.add_argument('--output', type=Path, help='App destination; defaults to a separate app for graphics checks')
+    parser.add_argument('--without-occlusion-fixes', action='store_true',
+                        help='Omit the tree, foliage/grass and rock HiZ workarounds; reuse the existing environment')
     args = parser.parse_args()
-    output = args.output.absolute()
+    occlusion = not args.without_occlusion_fixes
+    default_name = 'RDR2Launcher.app' if occlusion else 'RDR2GraphicsCheck.app'
+    output = (args.output or ROOT / 'dist' / default_name).absolute()
     if output.suffix != '.app' or output.is_symlink() or (output.exists() and not output.is_dir()):
         parser.error('Output must be an app directory, not a symlink')
     accepted = json.loads((ROOT / 'config/accepted-renderer.json').read_text())
+    comparison = accepted.pop('without_occlusion_fixes')
+    if not occlusion:
+        accepted.update(comparison)
+    accepted['occlusion_fixes_included'] = occlusion
     pins = json.loads((ROOT / 'experiments/moltenvk-trees/pins.json').read_text())
     artifact = ROOT / accepted['artifact']
     runtime = ROOT / accepted['runtime']
     metadata = validate_artifact(artifact, accepted, pins)
+    compiled_strings = subprocess.check_output(['/usr/bin/strings', '-a', str(artifact / 'libMoltenVK.dylib')], text=True)
+    for name in ['TREE', 'FOLIAGE', 'ROCK']:
+        if ('RDR2_MVK_' + name + '_HIZ_BYPASS' in compiled_strings) != occlusion:
+            raise ValueError('Compiled occlusion helpers do not match the requested build')
     if digest(runtime / 'frameworks/libMoltenVK.dylib') != pins['moltenvk']['reference_dylib_sha256']:
         raise ValueError('Runtime is not the pinned baseline')
     run('/usr/bin/codesign', '--verify', '--strict', artifact / 'libMoltenVK.dylib')
@@ -71,19 +92,27 @@ def main():
         info_path = app / 'Contents/Info.plist'
         info = plistlib.loads(info_path.read_bytes())
         info.update({
-            'CFBundleDisplayName': 'RDR2 Launcher', 'CFBundleVersion': '5',
+            'CFBundleDisplayName': 'RDR2 Launcher' if occlusion else 'RDR2 Graphics Check',
+            'CFBundleName': 'RDR2Launcher' if occlusion else 'RDR2GraphicsCheck',
+            'CFBundleIdentifier': 'org.rdr2launcher.app' if occlusion else 'org.rdr2launcher.graphics-check',
+            'CFBundleVersion': '6',
             'RDR2LauncherEdition': 'patched',
-            'RDR2LauncherSubtitle': 'Steam edition · Story Mode · Vulkan / patched MoltenVK\nTree, foliage and rock workarounds included.',
+            'RDR2LauncherSubtitle': 'Steam edition · Story Mode · Vulkan / patched MoltenVK\nTree, foliage and rock workarounds ' + ('included.' if occlusion else 'omitted for graphics checks.'),
+            'RDR2OcclusionFixesIncluded': occlusion,
             'RDR2RendererVariant': accepted['mode'], 'RDR2TreeFixEnabled': True})
         info_path.write_bytes(plistlib.dumps(info))
         shutil.copy2(artifact / 'build.json', resources / 'moltenvk-candidate-build.json')
         (resources / 'accepted-renderer.json').write_text(json.dumps(accepted, indent=2) + '\n')
         notices = resources / 'runtime/licenses/moltenvk-local-patches'
         notices.mkdir(parents=True, exist_ok=True)
-        for patch in (ROOT / 'experiments/moltenvk-trees/patches').glob('*.patch'):
+        patches = pins['moltenvk']['patches'] + [pins['candidate']]
+        patches += pins['candidate']['variants'][accepted['mode']]['patches']
+        for item in patches:
+            patch = ROOT / 'experiments/moltenvk-trees/patches' / item['file']
             shutil.copy2(patch, notices / patch.name)
-        for header in (ROOT / 'experiments/moltenvk-trees').glob('*-hiz-workaround.h'):
-            shutil.copy2(header, notices / header.name)
+        if occlusion:
+            for header in (ROOT / 'experiments/moltenvk-trees').glob('*-hiz-workaround.h'):
+                shutil.copy2(header, notices / header.name)
         shutil.copy2(ROOT / 'experiments/moltenvk-trees/pins.json', notices / 'pins.json')
         manifest_path = resources / 'runtime/manifest.json'
         manifest = json.loads(manifest_path.read_text())
@@ -100,8 +129,9 @@ def main():
         result = run(app / 'Contents/MacOS/RDR2Launcher', '--diagnose',
                      stdout=subprocess.PIPE, text=True).stdout
         if ('Launcher edition: patched' not in result or
-                'Default data folder: ' + accepted['data_directory'] not in result):
-            raise ValueError('Main app selected the wrong default environment')
+                'Default data folder: ' + accepted['data_directory'] not in result or
+                'Occlusion workarounds: ' + ('included' if occlusion else 'not included') not in result):
+            raise ValueError('App selected the wrong environment or renderer profile')
         previous = staging / 'previous.app'
         if output.exists():
             output.rename(previous)
@@ -112,7 +142,7 @@ def main():
                 previous.rename(output)
             raise
     print(result)
-    print('Built main app:', output)
+    print('Built app:', output)
     print('Renderer SHA256:', metadata['sha256'])
 
 

@@ -1,3 +1,17 @@
+# Separate graphics-check build using the existing installation — 2026-10-27
+
+`scripts/build.sh --without-occlusion-fixes` now builds
+`dist/RDR2GraphicsCheck.app` with the three tree/foliage/rock HiZ workarounds
+omitted from the renderer. The earlier allocation/query changes remain.
+It shares the permanent prefix, installed game, saves and sign-ins with the
+regular app, which is preserved. Exit RDR2, Windows Steam/Rockstar and the
+launcher before switching app profiles. Both packaging profiles, 20 Python
+tests, 17 Swift checks and the comparison's native GPU allocation/query probes
+pass. No new game copy or prefix was created, and no game was launched during
+validation. See [graphics-check usage and provenance](notes/graphics-check-build-2026-10-27.md).
+
+---
+
 # Permanent main-app data directory — 2026-10-27
 
 The main app now uses `~/Library/Application Support/RDR2Launcher/`. The tested
