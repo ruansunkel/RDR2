@@ -1,5 +1,8 @@
 # How to build & run
 
+These commands require the prepared `vendor/` inputs. Fresh-clone setup is
+[planned for later implementation](notes/fresh-clone-build-plan.md).
+
 Run these commands from the project folder. Quit RDR2, Windows Steam/Rockstar
 and the launcher before switching builds. Both builds reuse the existing game,
 prefix, saves and sign-ins.

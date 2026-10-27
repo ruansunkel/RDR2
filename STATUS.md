@@ -1,3 +1,15 @@
+# Pending: build setup from a fresh clone — 2026-10-27
+
+The app build still requires the prepared, Git-ignored `vendor/` inputs. A
+fresh clone alone cannot yet produce either full app. The next implementation
+work is to automate pinned public dependency/runtime preparation, build both
+renderer recipes without private historical test files, and validate newly
+compiled artifacts without treating their bytes as the historical tested
+binaries. See the [implementation checklist and acceptance checks](notes/fresh-clone-build-plan.md).
+This is documented backlog; setup/build behavior has not changed.
+
+---
+
 # Separate graphics-check build using the existing installation — 2026-10-27
 
 `scripts/build.sh --without-occlusion-fixes` now builds
