@@ -2,8 +2,12 @@
 
 The main app now uses `~/Library/Application Support/RDR2Launcher/`. The tested
 prefix and its game copy were migrated from the candidate directory; the older
-prefix already at the permanent name was archived. A compatibility symlink
-preserves paths stored inside Wine. Saves and sign-ins are retained, and
+prefix already at the permanent name was archived. The user then confirmed:
+**"I can confirm that the game works now."** After that launch, an audit found
+no live symlinks, operational settings or open files depending on the old
+candidate/control names. Both unused control folders were moved into the
+external archive, and the temporary candidate compatibility symlink was removed.
+Only `RDR2Launcher` remains in Application Support. Saves and sign-ins are retained, and
 `~/Games/RDR2/` remains untouched. The main edition is now `patched`, with the
 same accepted renderer bytes and allocation settings. See
 [migration and recovery](notes/data-folder-migration-2026-10-27.md).

@@ -2,8 +2,10 @@
 
 Follow-up: the tested environment was subsequently migrated to the permanent
 `~/Library/Application Support/RDR2Launcher/` name, with the older prefix
-archived and a compatibility symlink preserving old paths. The main edition
-is now `patched`. See [migration and recovery](data-folder-migration-2026-10-27.md).
+archived. After the user confirmed gameplay, Wine's refreshed paths were audited
+and the temporary compatibility symlink was removed. Both obsolete control
+directories were also archived. The main edition is now `patched`. See
+[migration and recovery](data-folder-migration-2026-10-27.md).
 The data-directory descriptions below record the initial cleanup state.
 
 The main app is now `dist/RDR2Launcher.app`. Build it with `scripts/build.sh` and

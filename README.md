@@ -62,8 +62,10 @@ are only used to build; a correctly assembled host app uses its bundled Wine.
 The main app uses `~/Library/Application Support/RDR2Launcher/`. The tested
 environment, its game library, saves and sign-ins have been moved there; the
 previous environment at that name is preserved in the external archive. A
-compatibility symlink at the former candidate name keeps Wine's stored paths
-working. The main build uses the `patched` edition. Replacing the app
+temporary compatibility symlink was removed after a successful game launch and
+an audit of Wine's updated paths. The old control folders are also archived;
+only `RDR2Launcher` remains in Application Support. The main build uses the
+`patched` edition. Replacing the app
 preserves the prefix, Steam updates and saves; a chosen external library persists
 separately. Removing the app leaves all game data intact. No destructive reset is
 provided. Backups of changed state/registry settings remain in the data directory.
