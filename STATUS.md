@@ -1,3 +1,15 @@
+# Permanent main-app data directory — 2026-10-27
+
+The main app now uses `~/Library/Application Support/RDR2Launcher/`. The tested
+prefix and its game copy were migrated from the candidate directory; the older
+prefix already at the permanent name was archived. A compatibility symlink
+preserves paths stored inside Wine. Saves and sign-ins are retained, and
+`~/Games/RDR2/` remains untouched. The main edition is now `patched`, with the
+same accepted renderer bytes and allocation settings. See
+[migration and recovery](notes/data-folder-migration-2026-10-27.md).
+
+---
+
 # Main app rebuilt with all accepted fixes — 2026-10-27
 
 Use `scripts/build.sh` to rebuild `dist/RDR2Launcher.app`, then

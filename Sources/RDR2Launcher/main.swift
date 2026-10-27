@@ -74,7 +74,7 @@ import LauncherCore
         guard coordinator?.busy != true else { throw LauncherError.message("Wait for the current setup operation to finish.") }
         guard let resources = Bundle.main.resourceURL else { throw LauncherError.message("Missing app resources") }
         let root = try selection?.url ?? DataPaths.standard().root
-        if edition != .standard,
+        if edition.isExperimental,
            root.standardizedFileURL.resolvingSymlinksInPath() == (try DataPaths.standard(edition: .standard).root).standardizedFileURL.resolvingSymlinksInPath() {
             throw LauncherError.message("Choose a copied test environment. The experimental launcher uses separate data so the regular installation stays available.")
         }

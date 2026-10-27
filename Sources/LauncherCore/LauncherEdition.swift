@@ -2,6 +2,7 @@ import Foundation
 
 public enum LauncherEdition: String {
     case standard
+    case patched
     case moltenvkControl = "moltenvk-control"
     case moltenvkCandidate = "moltenvk-candidate"
 
@@ -11,15 +12,19 @@ public enum LauncherEdition: String {
 
     public var defaultDataDirectory: String {
         switch self {
-        case .standard: return "RDR2Launcher"
+        case .standard, .patched: return "RDR2Launcher"
         case .moltenvkControl: return "RDR2Launcher-MoltenVK-Control"
         case .moltenvkCandidate: return "RDR2Launcher-MoltenVK-Candidate"
         }
     }
 
+    public var isExperimental: Bool {
+        self == .moltenvkControl || self == .moltenvkCandidate
+    }
+
     public var displayName: String {
         switch self {
-        case .standard: return "RDR2 Launcher"
+        case .standard, .patched: return "RDR2 Launcher"
         case .moltenvkControl: return "RDR2 MoltenVK Control"
         case .moltenvkCandidate:
             return Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "RDR2 Tree Experiment"
@@ -29,6 +34,9 @@ public enum LauncherEdition: String {
     public var subtitle: String {
         switch self {
         case .standard: return "Steam edition · Story Mode · Vulkan / patched MoltenVK\nSign in only inside Steam and Rockstar."
+        case .patched:
+            return Bundle.main.object(forInfoDictionaryKey: "RDR2LauncherSubtitle") as? String ??
+                "Steam edition · Story Mode · Vulkan / patched MoltenVK\nTree, foliage and rock workarounds included."
         case .moltenvkControl: return "Baseline renderer comparison\nUse the same save and graphics settings for each comparison."
         case .moltenvkCandidate:
             return Bundle.main.object(forInfoDictionaryKey: "RDR2LauncherSubtitle") as? String ??

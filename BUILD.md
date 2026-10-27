@@ -15,8 +15,10 @@ the baseline runtime at `vendor/rdr2-runtime-r27-portable-v3/`. The pinned drive
 contains all three shader workarounds and the allocation/query changes.
 `config/accepted-renderer.json` fixes its checksum; mismatched bytes or source
 pins are rejected. Staging, signing and integrity checks complete before the
-old main app is replaced. The app retains the existing
-`RDR2Launcher-MoltenVK-Candidate` data folder and client sign-ins.
+old main app is replaced. The app uses the permanent `RDR2Launcher` data folder
+with the `patched` edition. The tested prefix, game library and sign-ins were
+migrated there; the earlier folder at that name was archived. See
+[the migration record](notes/data-folder-migration-2026-10-27.md).
 
 This command rebuilds the launcher, not MoltenVK itself. To modify/recompile
 MoltenVK, use the pinned research build/probe workflow under

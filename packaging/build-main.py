@@ -71,9 +71,8 @@ def main():
         info_path = app / 'Contents/Info.plist'
         info = plistlib.loads(info_path.read_bytes())
         info.update({
-            'CFBundleDisplayName': 'RDR2 Launcher', 'CFBundleVersion': '4',
-            # Retain the tested environment, including saves and client sign-ins.
-            'RDR2LauncherEdition': 'moltenvk-candidate',
+            'CFBundleDisplayName': 'RDR2 Launcher', 'CFBundleVersion': '5',
+            'RDR2LauncherEdition': 'patched',
             'RDR2LauncherSubtitle': 'Steam edition · Story Mode · Vulkan / patched MoltenVK\nTree, foliage and rock workarounds included.',
             'RDR2RendererVariant': accepted['mode'], 'RDR2TreeFixEnabled': True})
         info_path.write_bytes(plistlib.dumps(info))
@@ -100,7 +99,7 @@ def main():
             raise ValueError('Packaged renderer bytes changed')
         result = run(app / 'Contents/MacOS/RDR2Launcher', '--diagnose',
                      stdout=subprocess.PIPE, text=True).stdout
-        if ('Launcher edition: moltenvk-candidate' not in result or
+        if ('Launcher edition: patched' not in result or
                 'Default data folder: ' + accepted['data_directory'] not in result):
             raise ValueError('Main app selected the wrong default environment')
         previous = staging / 'previous.app'

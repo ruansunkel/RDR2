@@ -1,5 +1,11 @@
 # Main app and workspace cleanup — 2026-10-27
 
+Follow-up: the tested environment was subsequently migrated to the permanent
+`~/Library/Application Support/RDR2Launcher/` name, with the older prefix
+archived and a compatibility symlink preserving old paths. The main edition
+is now `patched`. See [migration and recovery](data-folder-migration-2026-10-27.md).
+The data-directory descriptions below record the initial cleanup state.
+
 The main app is now `dist/RDR2Launcher.app`. Build it with `scripts/build.sh` and
 open it with `scripts/launch-rdr2.sh`, or open the app directly in Finder.
 It contains the exact driver accepted in the tree, foliage and rock comparisons:

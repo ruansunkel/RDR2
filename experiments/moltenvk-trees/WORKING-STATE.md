@@ -1,5 +1,10 @@
 # Current accepted rendering workarounds — 2026-10-27
 
+The main app now uses the `patched` edition and permanent
+`~/Library/Application Support/RDR2Launcher/` environment. The former candidate
+path is a compatibility symlink to that environment. Future experimental tests
+need a fresh isolated copy; see [migration details](../../notes/data-folder-migration-2026-10-27.md).
+
 The user confirmed the selected tree ("it works"), foliage ("Stays visible") and
 rock ("It is visible now") in their respective same-scene camera-turn tests.
 Current main app: `dist/RDR2Launcher.app`, rebuilt with `scripts/build.sh` using
