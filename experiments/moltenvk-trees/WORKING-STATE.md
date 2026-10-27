@@ -1,3 +1,120 @@
+# Current accepted rendering workarounds — 2026-10-27
+
+The user confirmed the selected tree ("it works"), foliage ("Stays visible") and
+rock ("It is visible now") in their respective same-scene camera-turn tests.
+Current working app: `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`.
+Driver SHA256:
+`b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`.
+
+RDR2 PID42980 was verified mapping that exact driver. Native events confirmed
+`tree-hiz-bypass-applied`, `foliage-hiz-bypass-applied` and
+`rock-hiz-bypass-applied`. Unmatched shader fingerprints remained unchanged.
+The same game was capture-enabled and listed with WineMetalLayer3920. These are
+historical identity observations; revalidate before any future process action.
+No owned large replay remains. Preserve the accepted running game and signed
+bundle; acceptance recording and the later documentation audit did not change
+any game/process, renderer, graphics setting or system installation.
+
+## Scope and baseline
+
+The final `candidate-rock-occlusion` mode includes three independent complete-MSL-
+body SHA256 guards. Only the captured shaders' HiZ rejection branches are
+bypassed. Other culling checks remain active. Native launch switches are
+`RDR2_MVK_TREE_HIZ_BYPASS`, `RDR2_MVK_FOLIAGE_HIZ_BYPASS` and
+`RDR2_MVK_ROCK_HIZ_BYPASS`;0 disables the corresponding helper on a future native
+launch. The GUI does not inherit arbitrary shell variables.
+
+Original numeric HiZ data and the heap root cause remain unreproduced. These
+are targeted scene workarounds. Broad-scene coverage, performance and extended
+stability remain unmeasured. The failed earlier heap-byte reconstruction remains
+excluded as numeric-depth evidence. Do not repeat unsuccessful argument-buffer
+or query comparisons as if they were new fixes.
+
+Accepted earlier apps/source/artifacts remain preserved:
+
+- Tree-only: `dist/tree-occlusion/RDR2 Trees Occlusion Diagnostic.app`, driver
+  `f829744a02ed35f3fcf30a2f434a934f0441aa20af45be5f1f0d21b18a72b5cc`.
+- Tree/foliage: `dist/object-occlusion/RDR2 Objects Occlusion Diagnostic.app`, driver
+  `e0e54e0efb62103a0bdb3d712ea366215d2ccf60a44a8e4da987aaa53e674668`.
+
+## Foliage evidence
+
+Separate manifest: `host-private/captures/foliage-pair-active.json`.
+Visible trace game-b307789ece8e44b88a4c968c16e59890 (10200124641 bytes), missing
+trace game-472e5530fc1b4067a5ec39e9f06d7eef (10550307524 bytes), same PID78582 and
+accepted tree driver. User selected foliage above Arthur's head, then missing
+slightly to the right, then saved/closed. Replays were sequential.
+
+Visible pixel(635,325) first appears cb0/re108/draw32 API12756. Matching missing
+mesh cb0/re111/draw35 API13357. Indices708B and vertices6768B byte-identical.
+Transform table0x15e6994d00. Main instance count12 becomes7. Exact missing
+producer cb0/ce7/disp80 API911 cps68 writes selected list0x1545258960.
+Shader body SHA256:
+`7d71e03178769c66f09ff9247f18e7d686634b23ca4759521e180ae677b2b739`.
+Captured missing inputs with HiZ disabled retain five previously visible IDs
+17,75,85,136,137 that pass all remaining checks. Six native controls and
+changed/unrelated/disabled-source guards pass. Original depth is not reproduced.
+Private summary: `captured-foliage-workaround-results.json`; user acceptance:
+`object-occlusion-foliage-user-acceptance.json`.
+
+## Rock evidence
+
+Separate manifest: `host-private/captures/rock-pair-active.json`.
+Visible trace game-8ece32438bee484da3dcac58bbe9bf70 (9155203614 bytes), missing
+trace game-055da369aafe42dfb053bbf42dac85ac (9530456432 bytes), same PID11326 and
+accepted object driver. Both tree and foliage bypasses were active. User saved
+and closed before replay. A brief pause was explicitly resumed; the interrupted
+first replay had not started. Owned visible41 and missing44 replays were used
+sequentially and released after all exports.
+
+Visible pixel(720,360) first appears cb0/re98/draw76 API6355. Matching missing
+mesh cb0/re98/draw77 API6342. All three vertex streams and5970 UInt16 indices are
+byte-identical. Instance73 disappears from the main draw; shadow API2052 still
+has1 instance. Exact missing producer cb0/ce7/disp18 API646 cps77 writes selected
+list0x1543b621e0 and reads transform table0x15e6e8da00. Shader body SHA256:
+`95a4b16527bcfbe7d4818bc0e837d88257ecaf9419be0ac694062d7be2080ad6`.
+
+Captured camera272B, globals928B, object132B, transforms6464B (101 entries) and
+args120B were extracted at the dispatch. Four output lists404B each. The isolated
+shader keeps73 with HiZ disabled; depth10000 rejects it. The new helper keeps73
+in all six controls, and changed/unrelated/disabled-source guards pass. Private
+summary: `captured-rock-workaround-results.json`; acceptance:
+`rock-occlusion-user-acceptance.json`; loaded-driver/native-event evidence:
+`candidate-rock-occlusion-loaded-in-rdr2.json`.
+
+## Validation and tooling
+
+All seven exact-final-driver allocation/policy runs and the query regression
+passed. App deep/strict signature and runtime integrity passed. The small heap
+probe compared nine captured128x72x7 R32Float placements across standalone,
+placement and placement-with-parent-buffer modes:884304 values per mode, zero
+mismatches. It does not reproduce full game resource reuse or synchronization.
+
+The session tool now detects an already closed prefix before shutdown requests.
+An initial idle-session shutdown timeout was recovered only after verifying the
+candidate Wine server/prefix and backing up eight saves. Later switches closed
+normally with eight verified save backups. `--capture-new-app` uses the new app's
+native runtime after old-client shutdown, avoiding another capture-only restart.
+Five session/environment tests and all18 Python checks pass. Source and patch
+pins for object/rock variants have been reverified.
+
+## Documentation and publication
+
+The user requested an exact change summary, a list of software installed/used,
+and committing/pushing the relevant changes. Added:
+`notes/rendering-changes-2026-10-27.md` and `notes/build-and-test-software.md`.
+See Git history for the resulting publication commit. Native GPU tests need not
+be repeated for documentation changes. The full repository check uses fresh
+project-local caches because the copied Swift cache referenced the earlier
+build Mac's absolute path.
+
+Private evidence, captures, apps, dependencies, game/sign-ins and save backups
+remain local and ignored. Preserve the complete project copy when transferring;
+Git alone does not include those artifacts. The historical checkpoint below
+records the earlier tree investigation and remains useful provenance.
+
+---
+
 # Checkpoint publication requested — 2026-10-26
 
 The user subsequently requested committing and pushing the paused checkpoint and

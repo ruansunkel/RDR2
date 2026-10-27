@@ -21,6 +21,20 @@ workaround is user-confirmed in the tested Story Mode scene. Disappearing rocks
 and some foliage remain unresolved. The whole-memory-buffer alternative remains
 an unbuilt experiment. See HOST-CANDIDATE.md and WORKING-STATE.md for evidence.
 
+The captured-foliage HiZ bypass was also written for this investigation; its
+added code is provided under Apache-2.0. It targets one additional complete-source
+SHA256-matched shader, identified from the remaining foliage camera pair. Native
+synthetic-depth controls pass; in-game visual acceptance and rock coverage remain
+pending. Captured game shaders and assets are private evidence and are not
+included in these patches or the app bundle.
+
+The captured-rock HiZ bypass is likewise original diagnostic code under
+Apache-2.0. It targets one additional complete-source SHA256-matched rigid-object
+shader isolated from a disappearing-boulder camera pair. Captured-input GPU
+controls restore the selected instance; in-game visual acceptance is pending.
+The original depth texture and heap root cause remain unreproduced. Captured
+game shaders/assets remain private evidence and are not bundled.
+
 The query-result range/availability backport derives from upstream MoltenVK
 commit 701747d61a0484e91c205e081a24ca592ffa12b4, PR2794, under Apache-2.0:
 https://github.com/KhronosGroup/MoltenVK/pull/2794

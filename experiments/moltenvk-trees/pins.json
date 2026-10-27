@@ -99,6 +99,73 @@
           "MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h": "a6da3c1d4833f2e18135d5ad5e9f3e301196fdc20b6af0e2bed09f58ea8e2045"
         },
         "status": "diagnostic workaround for exactly one captured culling shader; original depth data not reproduced; visual fix unverified"
+      },
+      "candidate-object-occlusion": {
+        "patches": [
+          {
+            "file": "moltenvk-query-result-range.patch",
+            "sha256": "9cb8eb3b4859870668e2159569bd123cd993a0d94a95354cd41714fa83859a59"
+          },
+          {
+            "file": "moltenvk-query-diagnostics.patch",
+            "sha256": "15c7cce566280aeaf22061c190cee1d5d5702be87d54b90ec96c41b7645326c9"
+          },
+          {
+            "file": "moltenvk-captured-tree-hiz-bypass.patch",
+            "sha256": "d719b82a2068f23aa701b69a6b0056b7a16ed43b3aeb767944d0b60a18614aae"
+          },
+          {
+            "file": "moltenvk-captured-foliage-hiz-bypass.patch",
+            "sha256": "a82f646aabe78b8a3005003bf5e1781edf11acb2ad5be69c9738dcaf389f3b0c"
+          }
+        ],
+        "files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "3072ec021d0af94da71920695ff32fe634c8d953fcd30d23a8741962cb802af2",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm": "4028898581c349777766baaed7c5bee3af0f3ef7215cb7c2434d7ddb76ab3a21",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.h": "aa9baa23f878d04039cf1ad5ca98ee0526f79d4b20aa1c8468e854ded1bf4f4b",
+          "MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm": "ea151b233e98d2b51fbf935aaae3ec630baf2901627471b3f3d308ac85e62fbd"
+        },
+        "added_files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h": "a6da3c1d4833f2e18135d5ad5e9f3e301196fdc20b6af0e2bed09f58ea8e2045",
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h": "835618eff65c4e4f3bde12c5740c58de33ea372d564c16b1a8c42e7eda31653e"
+        },
+        "status": "diagnostic workaround for the two exact captured tree and packed-foliage culling shaders; original depth input and heap root cause remain unreproduced"
+      },
+      "candidate-rock-occlusion": {
+        "patches": [
+          {
+            "file": "moltenvk-query-result-range.patch",
+            "sha256": "9cb8eb3b4859870668e2159569bd123cd993a0d94a95354cd41714fa83859a59"
+          },
+          {
+            "file": "moltenvk-query-diagnostics.patch",
+            "sha256": "15c7cce566280aeaf22061c190cee1d5d5702be87d54b90ec96c41b7645326c9"
+          },
+          {
+            "file": "moltenvk-captured-tree-hiz-bypass.patch",
+            "sha256": "d719b82a2068f23aa701b69a6b0056b7a16ed43b3aeb767944d0b60a18614aae"
+          },
+          {
+            "file": "moltenvk-captured-foliage-hiz-bypass.patch",
+            "sha256": "a82f646aabe78b8a3005003bf5e1781edf11acb2ad5be69c9738dcaf389f3b0c"
+          },
+          {
+            "file": "moltenvk-captured-rock-hiz-bypass.patch",
+            "sha256": "7663200963fc84adef5a840202d3f079c1997f456293bdad0ec0d9b7b1e9a6d1"
+          }
+        ],
+        "files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "3072ec021d0af94da71920695ff32fe634c8d953fcd30d23a8741962cb802af2",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm": "4028898581c349777766baaed7c5bee3af0f3ef7215cb7c2434d7ddb76ab3a21",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.h": "aa9baa23f878d04039cf1ad5ca98ee0526f79d4b20aa1c8468e854ded1bf4f4b",
+          "MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm": "54ce2ac4074db51b1d676312c6fe38f47eab2f7d94dab250cf5ad136b8f63b51"
+        },
+        "added_files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h": "a6da3c1d4833f2e18135d5ad5e9f3e301196fdc20b6af0e2bed09f58ea8e2045",
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h": "835618eff65c4e4f3bde12c5740c58de33ea372d564c16b1a8c42e7eda31653e",
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h": "649bf3c7cf37f12c23024a83c90f728fefdd5ce4961b827304bc4a7082ef46dc"
+        },
+        "status": "diagnostic workaround for exactly the captured tree, packed-foliage and rigid-rock culling shaders; original depth and heap root cause unreproduced; rock visual result pending"
       }
     }
   },

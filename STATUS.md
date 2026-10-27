@@ -1,3 +1,74 @@
+# Tree, foliage and rock examples have confirmed workarounds — 2026-10-27
+
+After the same-scene camera-turn comparison, the user confirmed the selected
+boulder: **"It is visible now"**. The current working app is
+`dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`. It includes the
+previously confirmed tree and foliage workarounds plus the captured rock shader.
+The running game and signed bundle are left untouched.
+
+The selected boulder's mesh and all three vertex streams are byte-identical in
+the visible/missing pair. Its main draw changes from instance73 to zero
+instances, while its shadow draw still has one. The exact culling producer is
+identified. Native captured-input controls restore73 when HiZ rejection is
+disabled; all six rock helper cases and source/disable guards pass.
+
+The separately built `candidate-rock-occlusion` preserves both user-confirmed
+tree and foliage shader workarounds and adds this third complete-source SHA256
+guard. Driver SHA256:
+`b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`.
+All seven exact-driver allocation checks and the query regression pass, along
+with all 18 Python checks. The separate app passes deep/strict signature and
+runtime-integrity checks. RDR2's exact driver mapping and all three native bypass
+activation events were verified before the user's positive rock result. The
+accepted object and tree apps are preserved.
+No large replay remains open. See [current evidence](notes/evidence/remaining-objects.md).
+
+This confirms targeted workarounds in the tested scenes. Original numeric depth
+and the underlying heap cause remain unreproduced; broad-scene coverage,
+performance and extended stability remain unmeasured. Acceptance is recorded
+outside the signed bundle in private `rock-occlusion-user-acceptance.json`.
+
+---
+
+# Foliage workaround confirmed in the tested scene — 2026-10-27
+
+The user requested continuation. A controlled visible/missing pair of foliage
+above Arthur's head has been captured and its exact packed-foliage culling
+dispatch identified. The matched mesh drops from 12 instances to 7. With the
+missing frame's small inputs, disabling HiZ restores five previously visible
+instances that pass all remaining checks.
+
+The separately signed `dist/object-occlusion/RDR2 Objects Occlusion Diagnostic.app`
+retains the working tree workaround and adds only this additional complete-source
+SHA256-matched shader. Six native foliage controls, scope/disable guards, all
+seven exact-driver allocation checks and the query regression pass. Its driver
+SHA256 is `e0e54e0efb62103a0bdb3d712ea366215d2ccf60a44a8e4da987aaa53e674668`.
+RDR2 has loaded that exact driver and native events confirm the captured-foliage
+bypass is applied. After returning to the same scene and repeating the camera
+turn, the user confirmed **"Stays visible"**. This establishes the foliage
+workaround in that scene. Rock status was not answered; other locations,
+performance and extended stability remain unmeasured. The original tree app is
+preserved, and the running game is left untouched.
+
+The user now confirms only rocks remain and has an example. The current game
+was launched without capture enabled, so a same-build capture restart is needed.
+The user identified the rock behind Arthur’s face, saved and closed the game.
+The same build was relaunched capture-enabled after eight verified save backups.
+The exact new-game renderer mapping and capture registration are verified; the
+visible-rock pose is pending. No rock capture has been recorded yet.
+
+A new native GPU test compares the captured HiZ texture dimensions and heap
+placements against standalone allocation. All three modes pass, with 884,304
+numeric values checked per mode. This synthetic test does not reproduce the
+game's original depth, resource reuse or synchronization and does not rule out
+heap faults. A closed-session relaunch issue was also corrected and covered by
+four tests. A further selected-runtime environment check covers capture-enabled
+switches to a new candidate; all 18 Python checks pass. Original numeric depth and a heap root
+cause remain unreproduced; rock coverage is unverified. See
+[current evidence](notes/evidence/remaining-objects.md).
+
+---
+
 # Paused checkpoint — rocks and foliage remain — 2026-10-26
 
 The user asked to park the investigation. The selected-tree workaround is

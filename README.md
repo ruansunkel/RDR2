@@ -13,6 +13,13 @@ retry with `-ignorepipelinecache` reached gameplay, without isolating the cause.
 FPS, extended-session stability and repeat cold starts remain unmeasured.
 See [STATUS.md](STATUS.md) and [HOST-TEST.md](HOST-TEST.md) for evidence and setup.
 
+The tested tree, foliage and rock examples now have confirmed rendering
+workarounds in `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`.
+[Exact changes](notes/rendering-changes-2026-10-27.md) describe the three guarded
+shader edits, capture/build tooling and remaining limits.
+[Build and test software](notes/build-and-test-software.md) lists versions,
+locations and which components were added locally or already present.
+
 Rebuild on an Apple Silicon build Mac with command-line developer tools:
 
 ```sh

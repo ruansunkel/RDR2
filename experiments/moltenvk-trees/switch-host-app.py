@@ -18,6 +18,37 @@ def processes():
     return {int(pid): name for pid, name in (line.strip().split(None, 1) for line in rows if line.strip())}
 
 
+def candidate_session_running(data):
+    """Find the server holding this prefix without booting a new Wine session."""
+    prefix = 'n' + str(data / 'prefixes/default')
+    for pid, name in processes().items():
+        if Path(name).name != 'wineserver':
+            continue
+        result = subprocess.run(['/usr/sbin/lsof', '-a', '-p', str(pid), '-Fn'],
+                                capture_output=True, text=True, timeout=15)
+        if result.returncode:
+            if processes().get(pid) == name:
+                raise RuntimeError('Cannot verify an active Wine server; no new session was launched')
+            continue
+        if prefix in result.stdout.splitlines():
+            return True
+    return False
+
+
+def wine_environment(app, data, selection):
+    resources = app / 'Contents/Resources'
+    manifest = json.loads((resources / 'runtime-manifest.json').read_text())
+    frameworks = str(resources / 'runtime/frameworks')
+    env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin',
+           'HOME': str(data / 'build-test-home') if selection.get('usePrivateHome') else str(Path.home()),
+           'TMPDIR': tempfile.gettempdir(), 'WINEPREFIX': str(data / 'prefixes/default'),
+           'WINEDEBUG': '-all', 'WINEMSYNC': '0', 'WINEESYNC': '0',
+           'WINEDLLOVERRIDES': 'winemenubuilder.exe=d',
+           'WINEDLLPATH_PREPEND': str(resources / 'runtime/renderers/dxmt/wine')}
+    env.update({k: v.replace('${frameworks}', frameworks) for k, v in manifest['baseEnv'].items() if k != 'WINEDEBUG'})
+    return env
+
+
 def refuse_running_game(idle_candidate=None):
     for pid, name in processes().items():
         base = name.replace('\\', '/').rsplit('/', 1)[-1].lower()
@@ -42,14 +73,18 @@ def main():
     parser.add_argument('--from-app', required=True, type=Path)
     parser.add_argument('--to-app', required=True, type=Path)
     parser.add_argument('--data-root', type=Path, default=Path.home() / 'Library/Application Support/RDR2Launcher-MoltenVK-Candidate')
-    parser.add_argument('--capture-session', action='store_true',
+    capture = parser.add_mutually_exclusive_group()
+    capture.add_argument('--capture-session', action='store_true',
                         help='relaunch the same isolated renderer with Apple capture enabled; no automatic capture or debugger')
+    capture.add_argument('--capture-new-app', action='store_true',
+                        help='switch to a different candidate app and explicitly launch its runtime capture-enabled')
     args = parser.parse_args()
     old, new, data = args.from_app.resolve(), args.to_app.resolve(), args.data_root.resolve()
     if (old == new and not args.capture_session) or data.name != 'RDR2Launcher-MoltenVK-Candidate':
         parser.error('Choose distinct candidate apps (or --capture-session) and the explicit candidate data folder')
     if args.capture_session and old != new:
         parser.error('A capture session preserves the current app/renderer; use matching from/to apps')
+    capture_launch = args.capture_session or args.capture_new_app
     for app in [old, new]:
         profile = json.loads((app / 'Contents/Resources/tree-candidate.json').read_text())
         if profile.get('default_data_directory') != data.name or profile.get('candidate_patch_included') is not True:
@@ -57,30 +92,30 @@ def main():
     selection = json.loads((data / 'state/selected-environment.json').read_text())['environment']
     if Path(selection['dataRoot']).resolve() != data:
         parser.error('Candidate selection points outside the expected test environment')
-    refuse_running_game(idle_candidate=data if args.capture_session else None)
+    refuse_running_game(idle_candidate=data if capture_launch else None)
     subprocess.run([str(new / 'Contents/MacOS/RDR2Launcher'), '--diagnose'],
                    stdout=subprocess.DEVNULL, check=True, timeout=40)
     resources = old / 'Contents/Resources'
     manifest = json.loads((resources / 'runtime-manifest.json').read_text())
-    frameworks = str(resources / 'runtime/frameworks')
-    env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin',
-           'HOME': str(data / 'build-test-home') if selection.get('usePrivateHome') else str(Path.home()),
-           'TMPDIR': tempfile.gettempdir(), 'WINEPREFIX': str(data / 'prefixes/default'),
-           'WINEDEBUG': '-all', 'WINEMSYNC': '0', 'WINEESYNC': '0',
-           'WINEDLLOVERRIDES': 'winemenubuilder.exe=d',
-           'WINEDLLPATH_PREPEND': str(resources / 'runtime/renderers/dxmt/wine')}
-    env.update({k: v.replace('${frameworks}', frameworks) for k, v in manifest['baseEnv'].items() if k != 'WINEDEBUG'})
+    env = wine_environment(old, data, selection)
     wine = resources / manifest['wine']
     server = resources / 'runtime/engine/bin/wineserver'
     steam = data / 'prefixes/default/drive_c/Program Files (x86)/Steam/steam.exe'
     common = {'env': env, 'cwd': data, 'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}
-    print('Requesting a normal shutdown of the candidate Steam client.', flush=True)
-    subprocess.run([str(wine), str(steam), '-shutdown'], timeout=30, **common)
-    refuse_running_game(idle_candidate=data if args.capture_session else None)
-    print('Requesting Windows shutdown only inside the candidate prefix.', flush=True)
-    subprocess.run([str(wine), 'wineboot', '--shutdown'], timeout=35, check=True, **common)
-    subprocess.run([str(server), '-w'], timeout=20, check=True, **common)
-    print('Candidate Wine session closed; registry/saves flushed.', flush=True)
+    session_was_running = candidate_session_running(data)
+    if session_was_running:
+        print('Requesting a normal shutdown of the candidate Steam client.', flush=True)
+        subprocess.run([str(wine), str(steam), '-shutdown'], timeout=30, **common)
+        refuse_running_game(idle_candidate=data if capture_launch else None)
+        print('Requesting Windows shutdown only inside the candidate prefix.', flush=True)
+        subprocess.run([str(wine), 'wineboot', '--shutdown'], timeout=35, check=True, **common)
+        subprocess.run([str(server), '-w'], timeout=20, check=True, **common)
+        print('Candidate Wine session closed; registry/saves flushed.', flush=True)
+    else:
+        print('Candidate Wine session is already closed; preserving it for backup.', flush=True)
+    refuse_running_game()
+    if candidate_session_running(data):
+        raise RuntimeError('Candidate Wine session is still active; no backup or new launch attempted')
     old_executable = str(old / 'Contents/MacOS/RDR2Launcher')
     for pid, name in processes().items():
         if name == old_executable and processes().get(pid) == old_executable:
@@ -108,11 +143,20 @@ def main():
                 if original != copied: raise RuntimeError('Flushed save backup checksum differs; no new launch attempted')
                 save_count += 1
     (checkpoint / 'switch.json').write_text(json.dumps({'from_app': str(old), 'to_app': str(new),
-        'data_root': str(data), 'game_was_not_running': True, 'candidate_session_closed_normally': True,
-        'verified_save_backup_files': save_count, 'capture_session': args.capture_session}, indent=2) + '\n')
-    if args.capture_session:
+        'data_root': str(data), 'game_was_not_running': True,
+        'candidate_session_was_running': session_was_running,
+        'candidate_session_closed_normally': True if session_was_running else None,
+        'verified_save_backup_files': save_count, 'capture_session': args.capture_session,
+        'capture_new_app': args.capture_new_app, 'capture_enabled': capture_launch}, indent=2) + '\n')
+    if capture_launch:
         # Set the native Wine child's environment explicitly. The GUI intentionally
         # does not inherit arbitrary shell variables. Never wait-for-signal in a game.
+        resources = new / 'Contents/Resources'
+        manifest = json.loads((resources / 'runtime-manifest.json').read_text())
+        frameworks = str(resources / 'runtime/frameworks')
+        wine = resources / manifest['wine']
+        env = wine_environment(new, data, selection)
+        common = {'env': env, 'cwd': data, 'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}
         env.update(MTL_CAPTURE_ENABLED='1', MVK_CONFIG_AUTO_GPU_CAPTURE_SCOPE='0',
                    RDR2_MVK_DEDICATED_BUFFER_NO_HEAP='1' if profile.get('allocation_option_enabled') else '0',
                    RDR2_MVK_ALLOCATION_MARKER_FILE=str(data / 'state/tree-allocation-events.log'),
@@ -141,7 +185,7 @@ def main():
             'capture_enabled_requested': True, 'automatic_capture_scope': 0,
             'debugger_attached': False, 'verified_save_backup_files': save_count,
             'capturable_game_verified': False}, indent=2) + '\n')
-        print('Requested the same game/renderer with Apple capture enabled. Actual capturability still needs verification.', flush=True)
+        print('Requested the selected app/game with Apple capture enabled. Actual capturability still needs verification.', flush=True)
     else:
         subprocess.run(['/usr/bin/open', '-n', str(new), '--args', '--play-game'], check=True)
         print('Opened the new candidate app using the same local game/save copy.', flush=True)

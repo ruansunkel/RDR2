@@ -1,5 +1,11 @@
 # Build and validation
 
+The current renderer's
+[exact changes](notes/rendering-changes-2026-10-27.md) and
+[audited software inventory](notes/build-and-test-software.md) supplement this
+original launcher/runtime build guide. The inventory distinguishes local
+downloads and bundled libraries from pre-existing Apple tools.
+
 These commands are **build Mac only**. The host receives one `.app`; its normal
 workflow uses no Python, Swift, Homebrew, Highball or separately installed Wine.
 Apple supplies Rosetta if needed. Steam/Rockstar sign-in and actual game download

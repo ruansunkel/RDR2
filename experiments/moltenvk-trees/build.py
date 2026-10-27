@@ -166,7 +166,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--work', type=Path, default=ROOT / 'vendor/tree-research')
     parser.add_argument('--mode', choices=['control', 'candidate', 'candidate-argument-buffer-off',
-                                         'candidate-query-results', 'candidate-tree-occlusion'], default='control')
+                                         'candidate-query-results', 'candidate-tree-occlusion',
+                                         'candidate-object-occlusion', 'candidate-rock-occlusion'], default='control')
     parser.add_argument('--control-evidence', type=Path)
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--jobs', type=int, default=2)

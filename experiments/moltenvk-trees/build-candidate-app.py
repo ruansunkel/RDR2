@@ -10,6 +10,12 @@ import subprocess
 
 from build import ROOT, HERE, PINS, digest
 
+QUERY_MODES = {'candidate-query-results', 'candidate-tree-occlusion',
+               'candidate-object-occlusion', 'candidate-rock-occlusion'}
+TREE_MODES = QUERY_MODES - {'candidate-query-results'}
+FOLIAGE_MODES = {'candidate-object-occlusion', 'candidate-rock-occlusion'}
+CANDIDATE_MODES = QUERY_MODES | {'candidate', 'candidate-argument-buffer-off'}
+
 
 def run(args, **kwargs):
     return subprocess.run(list(map(str, args)), check=True, **kwargs)
@@ -28,12 +34,12 @@ def main():
     artifact = args.artifact.resolve()
     source = artifact / 'libMoltenVK.dylib'
     metadata = json.loads((artifact / 'build.json').read_text())
-    if (metadata.get('mode') not in ['candidate', 'candidate-argument-buffer-off', 'candidate-query-results', 'candidate-tree-occlusion'] or metadata.get('pins') != PINS or
+    if (metadata.get('mode') not in CANDIDATE_MODES or metadata.get('pins') != PINS or
             metadata.get('architecture') != 'x86_64' or digest(source) != metadata.get('sha256')):
         parser.error('Candidate artifact provenance/hash/architecture differs')
-    if args.fix_disabled and metadata['mode'] in ['candidate-query-results', 'candidate-tree-occlusion']:
+    if args.fix_disabled and metadata['mode'] in QUERY_MODES:
         parser.error('--fix-disabled controls only the dedicated-buffer option; use the actual control artifact for a query-fix comparison')
-    if metadata['mode'] == 'candidate-tree-occlusion':
+    if metadata['mode'] in TREE_MODES:
         cull = json.loads((ROOT / 'vendor/tree-research/host-private/captured-cull-workaround-results.json').read_text())
         header = 'MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h'
         if (not cull.get('six_gpu_controls_passed') or not cull.get('guard_negative_controls_passed') or
@@ -42,6 +48,29 @@ def main():
                 cull.get('helper_sha256') != PINS['candidate']['variants']['candidate-tree-occlusion']['added_files'][header] or
                 cull.get('probe_sha256') != digest(HERE / 'probe-captured-cull.mm')):
             parser.error('Captured-culling GPU controls do not match this diagnostic workaround')
+    if metadata['mode'] in FOLIAGE_MODES:
+        foliage = json.loads((ROOT / 'vendor/tree-research/host-private/captured-foliage-workaround-results.json').read_text())
+        header = 'MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h'
+        if (not foliage.get('six_gpu_controls_passed') or not foliage.get('guard_negative_controls_passed') or
+                not foliage.get('restored_previous_view_ids') or
+                foliage.get('game_hiz_data_reproduced') is not False or
+                foliage.get('shader_sha256') != '7d71e03178769c66f09ff9247f18e7d686634b23ca4759521e180ae677b2b739' or
+                foliage.get('helper_sha256') != digest(HERE / 'foliage-cull-hiz-workaround.h') or
+                foliage.get('helper_sha256') != PINS['candidate']['variants']['candidate-object-occlusion']['added_files'][header] or
+                foliage.get('probe_sha256') != digest(HERE / 'probe-captured-foliage.mm')):
+            parser.error('Captured-foliage GPU controls do not match this diagnostic workaround')
+    if metadata['mode'] == 'candidate-rock-occlusion':
+        rock = json.loads((ROOT / 'vendor/tree-research/host-private/captured-rock-workaround-results.json').read_text())
+        header = 'MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h'
+        if (not rock.get('six_gpu_controls_passed') or not rock.get('guard_negative_controls_passed') or
+                rock.get('visible_instance_ids') != [73] or rock.get('missing_instance_ids') != [] or
+                rock.get('restored_previous_view_ids') != [73] or
+                rock.get('game_hiz_data_reproduced') is not False or
+                rock.get('shader_sha256') != '95a4b16527bcfbe7d4818bc0e837d88257ecaf9419be0ac694062d7be2080ad6' or
+                rock.get('helper_sha256') != digest(HERE / 'rock-cull-hiz-workaround.h') or
+                rock.get('helper_sha256') != PINS['candidate']['variants']['candidate-rock-occlusion']['added_files'][header] or
+                rock.get('probe_sha256') != digest(HERE / 'probe-captured-rock.mm')):
+            parser.error('Captured-rock GPU controls do not match this diagnostic workaround')
     original = args.runtime.resolve() / 'frameworks/libMoltenVK.dylib'
     if digest(original) != PINS['moltenvk']['reference_dylib_sha256']:
         parser.error('Source runtime is not the pinned reference')
@@ -58,7 +87,7 @@ def main():
         tested = (ROOT / 'vendor/tree-research/artifacts/control' if row['run'] == 'control' else artifact) / 'libMoltenVK.dylib'
         if row.get('dylib_sha256') != digest(tested) or row.get('probe_source_sha256') != digest(HERE / 'probe-gpu.c'):
             parser.error('GPU evidence does not match the current artifact and probe bytes')
-    if metadata['mode'] in ['candidate-query-results', 'candidate-tree-occlusion']:
+    if metadata['mode'] in QUERY_MODES:
         query_results = json.loads((ROOT / 'vendor/tree-research/host-private/query-probe-results.json').read_text())
         if len(query_results) != 2 or {r.get('run') for r in query_results} != {'control', 'candidate'}:
             parser.error('Query regression requires the real control and candidate GPU comparison')
@@ -95,7 +124,9 @@ def main():
     variant_names = {'candidate': ('RDR2 Trees Candidate', ''),
                      'candidate-argument-buffer-off': ('RDR2 Trees Argument Buffers Off', '.argument-buffers-off'),
                      'candidate-query-results': ('RDR2 Trees Query Results', '.query-results'),
-                     'candidate-tree-occlusion': ('RDR2 Trees Occlusion Diagnostic', '.tree-occlusion')}
+                     'candidate-tree-occlusion': ('RDR2 Trees Occlusion Diagnostic', '.tree-occlusion'),
+                     'candidate-object-occlusion': ('RDR2 Objects Occlusion Diagnostic', '.object-occlusion'),
+                     'candidate-rock-occlusion': ('RDR2 Rocks Occlusion Diagnostic', '.rock-occlusion')}
     name, identifier_suffix = variant_names[metadata['mode']]
     info.update({'CFBundleIdentifier': 'org.rdr2launcher.moltenvk-candidate' + identifier_suffix + ('.off' if args.fix_disabled else ''),
                  'CFBundleName': name + (' Off' if args.fix_disabled else ''),
@@ -109,8 +140,10 @@ def main():
                'source_commit': PINS['moltenvk']['commit'], 'candidate_patch_included': True,
                'allocation_option_enabled': not args.fix_disabled, 'candidate_dylib_sha256': metadata['sha256'],
                'gpu_allocation_probes_passed': True,
-               'query_result_gpu_regression_passed': metadata['mode'] in ['candidate-query-results', 'candidate-tree-occlusion'],
-               'captured_tree_hiz_bypass': metadata['mode'] == 'candidate-tree-occlusion',
+               'query_result_gpu_regression_passed': metadata['mode'] in QUERY_MODES,
+               'captured_tree_hiz_bypass': metadata['mode'] in TREE_MODES,
+               'captured_foliage_hiz_bypass': metadata['mode'] in FOLIAGE_MODES,
+               'captured_rock_hiz_bypass': metadata['mode'] == 'candidate-rock-occlusion',
                'gameplay_verified': False, 'tree_fix_verified': False}
     (resources / 'tree-candidate.json').write_text(json.dumps(sidecar, indent=2) + '\n')
     shutil.copy2(artifact / 'build.json', resources / 'moltenvk-candidate-build.json')
@@ -126,7 +159,9 @@ def main():
         'candidate': 'It changes eligible dedicated-buffer allocation only; image heaps and argument buffers remain enabled.',
         'candidate-argument-buffer-off': 'Metal argument buffers are disabled. Image heaps remain enabled; the dedicated-buffer allocation experiment is also included.',
         'candidate-query-results': 'It backports upstream PR2794 query-result range and availability-offset fixes. Heaps and Metal argument buffers remain enabled; the earlier dedicated-buffer experiment is also included.',
-        'candidate-tree-occlusion': 'It bypasses only the HiZ depth rejection in the exact captured tree-culling shader, guarded by SHA256 of its complete generated MSL body. This is a diagnostic workaround, not a proven driver fix, and may draw extra objects. Earlier query/allocation changes remain included.'
+        'candidate-tree-occlusion': 'It bypasses only the HiZ depth rejection in the exact captured tree-culling shader, guarded by SHA256 of its complete generated MSL body. This is a diagnostic workaround, not a proven driver fix, and may draw extra objects. Earlier query/allocation changes remain included.',
+        'candidate-object-occlusion': 'It retains the captured-tree workaround and bypasses HiZ rejection in the separate packed-foliage culling shader isolated in the second camera pair. Each complete generated MSL body is SHA256 guarded. Frustum, distance, fade and LOD checks remain. This is a diagnostic workaround that may increase overdraw; a heap root cause and rock coverage are unverified. Earlier query/allocation changes remain included.',
+        'candidate-rock-occlusion': 'It retains the captured-tree and packed-foliage workarounds and adds HiZ rejection bypass for the exact rigid-object shader isolated from the disappearing rock camera pair. All three complete generated MSL bodies are independently SHA256 guarded. Frustum, distance, fade and LOD checks remain. This may increase overdraw. Original numeric depth and a heap root cause remain unreproduced; rock visual acceptance is pending. Earlier query/allocation changes remain included.'
     }[metadata['mode']]
     (resources / 'CANDIDATE-TEST.md').write_text(
         '# Experimental RDR2 tree renderer build\n\n'

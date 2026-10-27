@@ -13,10 +13,13 @@ from build import ROOT
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--pair', type=Path,
+                        default=ROOT / 'vendor/tree-research/host-private/captures/camera-pair-active.json',
+                        help='camera-pair manifest; select a separate manifest to preserve earlier tree evidence')
     parser.add_argument('--state', choices=['visible', 'missing'], required=True)
     parser.add_argument('--keep-session', action='store_true')
     args = parser.parse_args()
-    pair_path = ROOT / 'vendor/tree-research/host-private/captures/camera-pair-active.json'
+    pair_path = args.pair.resolve()
     pair = json.loads(pair_path.read_text())
     evidence = Path(pair[args.state + '_capture'])
     capture = json.loads((evidence / 'capture.json').read_text())

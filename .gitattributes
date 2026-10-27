@@ -1,0 +1,2 @@
+# Unified-diff context preserves checksum-pinned upstream tabs and blank lines.
+experiments/moltenvk-trees/patches/*.patch -whitespace

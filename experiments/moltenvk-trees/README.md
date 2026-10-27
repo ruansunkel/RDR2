@@ -1,12 +1,45 @@
 # RDR2 tree-rendering experiment
 
-**Paused at the user's request.** The selected tree is fixed in the tested scene,
-but rocks and some foliage still disappear. Resume from
-[the checkpoint](../../notes/checkpoints/2026-10-26-rendering.md); remaining objects
-have not yet been isolated or captured.
+See the [exact change summary](../../notes/rendering-changes-2026-10-27.md) and
+[build/test software inventory](../../notes/build-and-test-software.md) for the
+final behavior, file-level changes, tool versions and installation scope.
+
+**The tested tree, foliage and rock examples now have user-confirmed workarounds.**
+Use `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`, which includes all
+three independently guarded shaders and reuses the existing candidate game,
+sign-ins and saves. The user confirmed the rock **"It is visible now"** after
+the same-scene camera-turn comparison. Exact driver mapping and all three native
+bypass events were verified before this result. The running game is preserved.
+
+The third controlled pair showed the selected boulder changing from instance73
+to no main-view instances while its shadow still drew.
+The exact rigid-object culling dispatch has been isolated. Its captured inputs
+retain73 in all six native GPU cases with the new guarded HiZ workaround.
+`candidate-rock-occlusion` adds only this third complete-source shader hash,
+preserving the accepted tree and foliage guards. This is a targeted workaround
+for the tested scenes; original depth and a heap root cause remain unproven.
+
+The new candidate is packaged separately as
+`dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`; its driver SHA256 is
+`b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`.
+Build with `--mode candidate-rock-occlusion`, run the existing allocation/query
+probes against `artifacts/candidate-rock-occlusion`, then pass that artifact to
+`build-candidate-app.py` with a new output path. Packaging requires all three
+captured-shader control reports. `RDR2_MVK_ROCK_HIZ_BYPASS=0` disables only the
+additional rock guard on a future native launch. Original depth, a heap root
+cause, broad-scene coverage and performance remain unverified.
+
+**Investigation resumed on 2026-10-27.** A second controlled camera pair captures
+the remaining foliage above Arthur's head. Its packed-foliage culling shader has
+been identified; isolated GPU tests restore five disappearing instances when
+HiZ rejection is disabled. A separately pinned `candidate-object-occlusion`
+variant adds that exact shader to the existing tree workaround. The user has
+confirmed **"Stays visible"** during the same-scene foliage camera test. The
+later rock result is recorded above. The underlying heap cause remains unverified. See
+[current evidence](../../notes/evidence/remaining-objects.md).
 
 The user has confirmed that **RDR2 Trees Occlusion Diagnostic.app** fixes the tree
-problem in the tested Story Mode scene. Use the already built app at
+problem in the tested Story Mode scene. That earlier tree-only app is preserved at
 `dist/tree-occlusion/RDR2 Trees Occlusion Diagnostic.app`; it reuses the candidate
 Application Support environment and existing local game files and saves.
 
@@ -23,6 +56,37 @@ helper fingerprints are in `pins.json`; packaging requires exact-driver allocati
 and query checks plus the captured-shader GPU controls. The original, control and
 previous candidate apps are preserved. Acceptance is recorded separately from the
 signed app bundle, which is unchanged after the user's confirmation.
+
+The object candidate uses an additional complete-source SHA256 guard for
+`7d71e03178769c66f09ff9247f18e7d686634b23ca4759521e180ae677b2b739`.
+`RDR2_MVK_FOLIAGE_HIZ_BYPASS=0` disables only that additional workaround on a
+future native launch. It does not alter heap allocation or establish a heap fix.
+Its packaging requires both captured-shader control reports and the new exact
+driver's allocation/query checks:
+
+```sh
+python3 experiments/moltenvk-trees/build.py --mode candidate-object-occlusion \
+  --control-evidence vendor/tree-research/host-private/control-evidence.json --jobs 2
+python3 experiments/moltenvk-trees/probe-gpu.py \
+  --candidate-artifact vendor/tree-research/artifacts/candidate-object-occlusion
+python3 experiments/moltenvk-trees/probe-queries.py \
+  --candidate-artifact vendor/tree-research/artifacts/candidate-object-occlusion
+python3 experiments/moltenvk-trees/build-candidate-app.py \
+  --artifact vendor/tree-research/artifacts/candidate-object-occlusion \
+  --output 'dist/object-occlusion/RDR2 Objects Occlusion Diagnostic.app'
+```
+
+The private foliage controls use `probe-captured-foliage.mm` and the small buffers
+extracted at `/commands/cb0/ce7/disp80` in the missing capture. Both normal and
+`--bypass-hiz` runs require the real GPU; original numeric depth remains
+unreproduced. `replay-camera-pair.py --pair /absolute/path/foliage-pair-active.json`
+selects this separate pair without replacing the earlier tree evidence.
+
+For later candidate comparisons, `switch-host-app.py --capture-new-app` explicitly
+launches the new app's native runtime with capture enabled after scoped shutdown
+and verified save backups. `--capture-session` preserves the current app for a
+same-build capture restart. Both refuse a running game; capture registration and
+the actual mapped driver must still be verified after launch.
 
 ## Earlier comparisons
 

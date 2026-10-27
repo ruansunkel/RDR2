@@ -1,3 +1,50 @@
+# User-confirmed rock workaround — 2026-10-27
+
+The user returned to the same boulder and confirmed **"It is visible now"** after
+being asked to repeat the camera turn that previously removed it. Use
+`dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`; it retains the accepted
+tree and foliage guards and adds the exact rigid-object shader isolated from the
+rock pair. Driver SHA256:
+`b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`.
+
+Before the positive result, RDR2 PID42980 was verified mapping that exact driver
+and native events confirmed all three bypasses active. The selected boulder's
+indices and three vertex streams are unchanged; its main-view instance73 was
+removed by the captured culling dispatch. The isolated GPU retains73 with HiZ
+disabled. Six rock controls, scope/disable guards, seven exact-driver allocation
+checks, the query regression, signature/integrity checks and 18 Python tests pass.
+
+This confirms the rock workaround in the tested scene. Original numeric depth,
+the heap root cause, performance, broad-scene coverage and extended stability
+remain unverified. Private acceptance: `rock-occlusion-user-acceptance.json`.
+No game/process, renderer or settings changes were made while recording it.
+Preserve the running game. See [full evidence](../../notes/evidence/remaining-objects.md).
+
+---
+
+# User-confirmed foliage workaround — 2026-10-27
+
+The user returned to the same cabin scene and confirmed **"Stays visible"** after
+the camera turn that previously removed the selected foliage. The new app is
+`dist/object-occlusion/RDR2 Objects Occlusion Diagnostic.app`. It preserves the
+earlier tree workaround and adds only the complete-SHA256-matched packed-foliage
+shader isolated from a second controlled pair. The exact new renderer mapping
+and native `foliage-hiz-bypass-applied` event were verified before this comparison.
+
+Driver SHA256:
+`e0e54e0efb62103a0bdb3d712ea366215d2ccf60a44a8e4da987aaa53e674668`.
+Six isolated foliage GPU cases, scope/disable guards, seven exact-driver
+allocation checks, the query regression and 17 Python checks pass. Signature and
+runtime-integrity checks pass. Acceptance is recorded outside the signed app in
+private `object-occlusion-foliage-user-acceptance.json`.
+
+This confirms the foliage workaround in the tested scene. Rock status was not
+answered, and the original numeric depth/heap cause, other locations, performance
+and extended stability remain unverified. Keep the running game untouched.
+See [current evidence](../../notes/evidence/remaining-objects.md).
+
+---
+
 # Paused with partial success — 2026-10-26
 
 After confirming the selected tree works, the user reports rocks and some foliage
