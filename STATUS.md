@@ -1,3 +1,24 @@
+# Main app rebuilt with all accepted fixes — 2026-10-27
+
+Use `scripts/build.sh` to rebuild `dist/RDR2Launcher.app`, then
+`scripts/launch-rdr2.sh` to open it. The main app now includes the exact accepted
+tree/foliage/rock renderer, SHA256
+`b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`,
+with the earlier allocation/query changes. It retains the current candidate
+environment, saves and client sign-ins. Signature, runtime integrity and
+environment selection checks pass. This rebuild changes packaging and launcher
+branding; renderer bytes remain the same as the user-tested rock build.
+
+Old private game data, GPU evidence, research inputs and earlier apps were
+archived outside the project with approval. The two local inputs needed for
+offline main-app rebuilds remain in `vendor/`; regenerable caches were removed.
+See [cleanup and recovery](notes/workspace-cleanup-2026-10-27.md).
+
+The entries below are chronological investigation checkpoints. Their app and
+evidence paths refer to the original locations, now recorded in the archive.
+
+---
+
 # Tree, foliage and rock examples have confirmed workarounds — 2026-10-27
 
 After the same-scene camera-turn comparison, the user confirmed the selected

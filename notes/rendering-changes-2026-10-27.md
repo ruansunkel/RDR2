@@ -1,6 +1,8 @@
 # Exact rendering and diagnostic changes — 2026-10-27
 
-The current app is `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`.
+The current app is `dist/RDR2Launcher.app`, rebuilt by `scripts/build.sh` with
+the exact renderer accepted in the rock diagnostic app. The original diagnostic
+bundle is preserved in the external workspace archive.
 The user confirmed the selected tree, foliage and rock examples in their
 respective camera-turn comparisons. The latest app includes all three guarded
 workarounds; native events verified all three active in its RDR2 process.

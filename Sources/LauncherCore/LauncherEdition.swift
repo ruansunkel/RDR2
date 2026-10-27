@@ -30,7 +30,9 @@ public enum LauncherEdition: String {
         switch self {
         case .standard: return "Steam edition · Story Mode · Vulkan / patched MoltenVK\nSign in only inside Steam and Rockstar."
         case .moltenvkControl: return "Baseline renderer comparison\nUse the same save and graphics settings for each comparison."
-        case .moltenvkCandidate: return "Experimental tree rendering\nCompare trees, water, shadows and performance with the control build."
+        case .moltenvkCandidate:
+            return Bundle.main.object(forInfoDictionaryKey: "RDR2LauncherSubtitle") as? String ??
+                "Experimental tree rendering\nCompare trees, water, shadows and performance with the control build."
         }
     }
 }

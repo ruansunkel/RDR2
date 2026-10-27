@@ -6,6 +6,12 @@ portable runtime preparation. Some local artifacts were prepared on the earlier
 build Mac and carried with the project. The latest foliage/rock work reused the
 existing toolchain and caches; it did not install a new system toolchain.
 
+After the workspace cleanup, historical `vendor/` locations below are preserved
+under `/Users/ruansunkel/Personal/RDR2-archive-20261027/` at the same relative
+paths. The main launcher rebuild needs only the retained baseline runtime,
+accepted renderer, Apple command-line tools and Python 3. See
+[cleanup and recovery](workspace-cleanup-2026-10-27.md).
+
 ## Added locally for the renderer builds
 
 | Software | Exact version or pin | Location and use |

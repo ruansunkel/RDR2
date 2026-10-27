@@ -1,5 +1,29 @@
 # Build and validation
 
+For the cleaned local workspace, quit RDR2 and the launcher, then rebuild the
+main executable and bundle all accepted rendering fixes with:
+
+```sh
+scripts/build.sh
+scripts/launch-rdr2.sh --diagnose
+scripts/launch-rdr2.sh
+```
+
+The output is `dist/RDR2Launcher.app`. This recompiles the Swift launcher and
+packages the exact tested renderer retained at `vendor/renderer/current/` with
+the baseline runtime at `vendor/rdr2-runtime-r27-portable-v3/`. The pinned driver
+contains all three shader workarounds and the allocation/query changes.
+`config/accepted-renderer.json` fixes its checksum; mismatched bytes or source
+pins are rejected. Staging, signing and integrity checks complete before the
+old main app is replaced. The app retains the existing
+`RDR2Launcher-MoltenVK-Candidate` data folder and client sign-ins.
+
+This command rebuilds the launcher, not MoltenVK itself. To modify/recompile
+MoltenVK, use the pinned research build/probe workflow under
+`experiments/moltenvk-trees/`. Its private evidence and downloaded source/build
+inputs have been archived; see [cleanup and recovery](notes/workspace-cleanup-2026-10-27.md).
+The remaining sections document runtime reproduction and historical host tests.
+
 The current renderer's
 [exact changes](notes/rendering-changes-2026-10-27.md) and
 [audited software inventory](notes/build-and-test-software.md) supplement this
@@ -89,9 +113,7 @@ output path for the updated transferable app:
 
 ```sh
 scripts/check.sh
-RDR2_BUILD_OUTPUT="$PWD/dist/transfer/RDR2Launcher.app" \
-  packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
-packaging/sign-app.sh dist/transfer/RDR2Launcher.app -
+scripts/build.sh --output "$PWD/dist/transfer/RDR2Launcher.app"
 packaging/test-relocation.sh dist/transfer/RDR2Launcher.app --wineboot
 packaging/package.sh dist/transfer/RDR2Launcher.app --development
 (cd dist && shasum -a 256 -c SHA256SUMS)

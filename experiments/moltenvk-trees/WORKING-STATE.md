@@ -2,7 +2,11 @@
 
 The user confirmed the selected tree ("it works"), foliage ("Stays visible") and
 rock ("It is visible now") in their respective same-scene camera-turn tests.
-Current working app: `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`.
+Current main app: `dist/RDR2Launcher.app`, rebuilt with `scripts/build.sh` using
+the same accepted renderer. The original rock diagnostic app and historical
+private inputs are now in `/Users/ruansunkel/Personal/RDR2-archive-20261027/`
+at their former relative paths. See [cleanup and recovery](../../notes/workspace-cleanup-2026-10-27.md)
+before resuming the research workflow.
 Driver SHA256:
 `b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce`.
 
@@ -11,9 +15,10 @@ RDR2 PID42980 was verified mapping that exact driver. Native events confirmed
 `rock-hiz-bypass-applied`. Unmatched shader fingerprints remained unchanged.
 The same game was capture-enabled and listed with WineMetalLayer3920. These are
 historical identity observations; revalidate before any future process action.
-No owned large replay remains. Preserve the accepted running game and signed
-bundle; acceptance recording and the later documentation audit did not change
-any game/process, renderer, graphics setting or system installation.
+No owned large replay remains. The game was closed before the later workspace
+cleanup. The accepted diagnostic bundle remains archived, and the main bundle
+contains identical renderer bytes. The live host environment, saves, graphics
+settings and system installations were left untouched.
 
 ## Scope and baseline
 

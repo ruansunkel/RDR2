@@ -1,0 +1,7 @@
+{
+  "mode": "candidate-rock-occlusion",
+  "sha256": "b914dc101ebcc70a415caabc69a2587efcb6770ee0ca27d7db2285935038fdce",
+  "artifact": "vendor/renderer/current",
+  "runtime": "vendor/rdr2-runtime-r27-portable-v3",
+  "data_directory": "RDR2Launcher-MoltenVK-Candidate"
+}

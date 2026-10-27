@@ -14,30 +14,38 @@ FPS, extended-session stability and repeat cold starts remain unmeasured.
 See [STATUS.md](STATUS.md) and [HOST-TEST.md](HOST-TEST.md) for evidence and setup.
 
 The tested tree, foliage and rock examples now have confirmed rendering
-workarounds in `dist/rock-occlusion/RDR2 Rocks Occlusion Diagnostic.app`.
+workarounds in the main app, `dist/RDR2Launcher.app`.
 [Exact changes](notes/rendering-changes-2026-10-27.md) describe the three guarded
 shader edits, capture/build tooling and remaining limits.
 [Build and test software](notes/build-and-test-software.md) lists versions,
 locations and which components were added locally or already present.
 
-Rebuild on an Apple Silicon build Mac with command-line developer tools:
+Quit RDR2 and the launcher, then build and open the latest main app on this Apple Silicon Mac:
 
 ```sh
-scripts/check.sh
-RDR2_BUILD_OUTPUT="$PWD/dist/transfer/RDR2Launcher.app" \
-  packaging/build-app.sh --runtime "$PWD/vendor/rdr2-runtime-r27-portable-v3"
-packaging/sign-app.sh dist/transfer/RDR2Launcher.app -
-packaging/package.sh dist/transfer/RDR2Launcher.app --development
+scripts/build.sh
+scripts/launch-rdr2.sh
 ```
 
-The transferable app is `dist/transfer/RDR2Launcher.app`; the archive is
-`dist/RDR2Launcher-development.zip` with `dist/SHA256SUMS`. This is ad-hoc signed,
-not notarized. No Steam/game files or account state are inside it. The initial
-launcher-only preview can still be built with `--launcher-only`.
+You can also open `dist/RDR2Launcher.app` in Finder. The build recompiles the
+native launcher and bundles the exact tested MoltenVK driver, including the
+tree, foliage and rock workarounds and earlier allocation/query changes.
+It verifies the renderer checksum, source pins, runtime integrity and signatures
+before replacing the previous main app. A failed build leaves that app intact.
+Run `scripts/launch-rdr2.sh --diagnose` for an integrity check without starting the game.
+
+The two retained local inputs are `vendor/rdr2-runtime-r27-portable-v3/` and
+`vendor/renderer/current/`. The accepted renderer checksum is tracked in
+`config/accepted-renderer.json`. Rebuilding the launcher uses Apple command-line
+developer tools and Python 3; it needs no GPU captures or network downloads.
+Compiling a changed MoltenVK driver remains the separate pinned workflow under
+`experiments/moltenvk-trees/`; this command deliberately requires the tested binary.
+This app is ad-hoc signed, not notarized. It contains no Steam/game files or
+account state. The launcher-only preview remains available with `--launcher-only`.
 
 The full runtime preparation, source pins, signing and remaining distribution
-requirements are in [BUILD.md](BUILD.md). Earlier build bundles remain in place for the current Steam/Rockstar session;
-use the **transfer** artifact as the updated launcher.
+requirements are in [BUILD.md](BUILD.md). See
+[the cleanup record](notes/workspace-cleanup-2026-10-27.md) for archived files and recovery.
 
 On first launch on the host, choose a persistent game folder and select
 **Install & Play**. Sign in within Windows Steam, select/add the mapped **R:** drive
@@ -51,7 +59,9 @@ client setup can take 15–25 minutes. **View logs** opens application event log
 which omit client output and account information. macOS tools and package managers
 are only used to build; a correctly assembled host app uses its bundled Wine.
 
-User data stays in `~/Library/Application Support/RDR2Launcher/`. Replacing the app
+The main app uses `~/Library/Application Support/RDR2Launcher-MoltenVK-Candidate/`
+to retain the tested environment and its current saves and sign-ins. The internal
+edition name remains `moltenvk-candidate` for that compatibility. Replacing the app
 preserves the prefix, Steam updates and saves; a chosen external library persists
 separately. Removing the app leaves all game data intact. No destructive reset is
 provided. Backups of changed state/registry settings remain in the data directory.
@@ -60,23 +70,14 @@ Steam/Rockstar authentication and an owned Steam copy (1174180) are required. Ap
 manages Rosetta installation if needed; this project does not install it silently.
 No commercial wrapper, Windows VM, Apple D3DMetal or DRM bypass is part of the launcher.
 
-The installed build-Mac game uses the isolated data directory
-`vendor/probes/native-steam/`. Keep using **that existing Windows Steam window**
-for Play; opening a launcher with a different data directory
-creates a separate prefix. Build-Mac sign-in/download state is intentionally excluded
-from the transferable app. No development tool or manually configured environment
-is needed on the host; Apple-managed Rosetta and normal client sign-ins still apply.
-
-If Steam appears to have lost the game, use **Use existing environment…** and choose
-`vendor/probes/native-steam` on this build Mac. The choice is remembered outside
-the app; **Show game files** opens the installed RDR2 directory. The game folder
-itself is not the launcher data folder. An unavailable remembered environment now
-shows an error instead of silently creating an empty replacement prefix.
-
-The completed build-Mac game is at:
-`vendor/probes/native-steam/prefixes/default/drive_c/Program Files (x86)/Steam/steamapps/common/Red Dead Redemption 2`.
-**Preserve vendor/probes/native-steam**: it now contains the downloaded game and
-its private Steam/Rockstar data. It is not disposable runtime build cache.
+The older build-Mac environment formerly at `vendor/probes/native-steam/` is
+archived outside this project; it contains a separate downloaded game and private
+client state. The current host environment and external game library stay in
+their existing locations. **Use existing environment…** can select a different
+launcher data folder if needed. The choice is remembered outside the app;
+**Show game files** opens its installed game directory. The game folder itself
+is not the launcher data folder. An unavailable remembered environment shows an
+error instead of silently creating an empty replacement prefix.
 
 For an installed Rockstar launcher, Play keeps Steam open and starts its registered
 background service when stopped, then verifies RUNNING before asking Steam to play.
