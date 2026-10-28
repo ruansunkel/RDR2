@@ -22,3 +22,14 @@ open dist/RDR2GraphicsCheck.app
 ```
 
 The comparison keeps the earlier allocation/query changes.
+
+## Water reflection investigation candidate
+
+```sh
+scripts/build.sh --water-reflection-candidate
+open dist/RDR2WaterCheck.app
+```
+
+This separate candidate preserves visibility-pass inversion in the occlusion
+workarounds. GPU controls pass; the water comparison is still pending. See
+[investigation notes](notes/water-reflection-investigation-2026-10-27.md).

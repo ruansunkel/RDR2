@@ -1,0 +1,48 @@
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h
+@@ -24,6 +24,12 @@
+     if (const char* enabled = std::getenv("RDR2_MVK_TREE_HIZ_BYPASS")) {
+         if (std::strcmp(enabled, "1")) return false;
+     }
+-    source.replace(pos, std::strlen(branch), "if (false) // RDR2 captured-tree HiZ diagnostic bypass");
++    // Keep the outer HiZ gate and the _m15 bit-0 inversion. Skipping the
++    // whole block admits geometry to both normal and inverted passes.
++    const char* depthBranch = "if (_512)";
++    auto depthPos = source.find(depthBranch, pos + std::strlen(branch));
++    if (depthPos == std::string::npos) return false;
++    source.replace(depthPos, std::strlen(depthBranch),
++                   "if (false) // RDR2 depth-only bypass; preserve pass inversion");
+     return true;
+ }
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h
+@@ -24,6 +24,12 @@
+     if (const char* enabled = std::getenv("RDR2_MVK_FOLIAGE_HIZ_BYPASS")) {
+         if (std::strcmp(enabled, "1")) return false;
+     }
+-    source.replace(pos, std::strlen(branch), "if (false) // RDR2 captured-foliage HiZ diagnostic bypass");
++    // Keep the outer HiZ gate and the _m15 bit-0 inversion. Skipping the
++    // whole block admits geometry to both normal and inverted passes.
++    const char* depthBranch = "if (_564)";
++    auto depthPos = source.find(depthBranch, pos + std::strlen(branch));
++    if (depthPos == std::string::npos) return false;
++    source.replace(depthPos, std::strlen(depthBranch),
++                   "if (false) // RDR2 depth-only bypass; preserve pass inversion");
+     return true;
+ }
+--- a/MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h
++++ b/MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h
+@@ -24,6 +24,12 @@
+     if (const char* enabled = std::getenv("RDR2_MVK_ROCK_HIZ_BYPASS")) {
+         if (std::strcmp(enabled, "1")) return false;
+     }
+-    source.replace(pos, std::strlen(branch), "if (false) // RDR2 captured-rock HiZ diagnostic bypass");
++    // Keep the outer HiZ gate and the _m15 bit-0 inversion. Skipping the
++    // whole block admits geometry to both normal and inverted passes.
++    const char* depthBranch = "if (_510)";
++    auto depthPos = source.find(depthBranch, pos + std::strlen(branch));
++    if (depthPos == std::string::npos) return false;
++    source.replace(depthPos, std::strlen(depthBranch),
++                   "if (false) // RDR2 depth-only bypass; preserve pass inversion");
+     return true;
+ }

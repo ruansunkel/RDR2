@@ -15,6 +15,7 @@ import sys
 import uuid
 
 from build import ROOT, HERE, digest
+from renderer_profile import app_profile
 
 
 GPUCAPTURE = '/usr/bin/gpucapture'
@@ -123,18 +124,18 @@ def main():
     parser.add_argument('--capture', action='store_true', help='capture the verified game; default only inspects')
     parser.add_argument('--frames', type=int, default=2, help='boundary iterations, 1–4; default 2 Layer frames')
     parser.add_argument('--boundary', type=int, help='explicit numeric boundary ID; otherwise requires exactly one Layer')
+    parser.add_argument('--timeout', type=int, default=55,
+                        help='capture completion timeout in seconds, 15–300; large scenes may need longer')
     args = parser.parse_args()
     if not 1 <= args.frames <= 4:
         parser.error('--frames must be between 1 and 4')
     if args.boundary is not None and args.boundary < 0:
         parser.error('--boundary must be a nonnegative numeric ID')
+    if not 15 <= args.timeout <= 300:
+        parser.error('--timeout must be between 15 and 300 seconds')
     app, data = args.app.resolve(), args.data_root.resolve()
-    if data.name != 'RDR2Launcher-MoltenVK-Candidate':
-        parser.error('Only the isolated candidate data root is supported')
     resources = app / 'Contents/Resources'
-    profile = json.loads((resources / 'tree-candidate.json').read_text())
-    if profile.get('default_data_directory') != data.name or profile.get('candidate_patch_included') is not True:
-        parser.error('App profile does not identify the isolated candidate environment')
+    profile = app_profile(app, data)
     library = (resources / 'runtime/frameworks/libMoltenVK.dylib').resolve()
     if not library.is_relative_to(app):
         parser.error('The expected renderer must be private to this app')
@@ -180,13 +181,14 @@ def main():
               'renderer_path': str(library), 'renderer_sha256': expected,
               'script_sha256': digest(HERE / 'capture-host-game.py'),
               'capture_arguments': command, 'boundary': boundary, 'boundary_count': args.frames,
+              'capture_timeout_seconds': args.timeout,
               'native_events_before': process_events(data, pid),
               'debugger_attached': False, 'security_settings_changed': False,
               'visual_fix_claimed': False, 'capture_completed': False}
     print('Capturing', args.frames, boundary['type'], 'iterations from only PID', pid, flush=True)
     try:
         try:
-            result = subprocess.run(command, capture_output=True, text=True, timeout=55)
+            result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
             (evidence / 'capture.log').write_text(clean(result.stdout + '\n' + result.stderr))
             report['capture_exit'] = result.returncode
             if result.returncode or re.search(r'(?im)\berror\s*:', clean(result.stdout + '\n' + result.stderr)):

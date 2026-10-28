@@ -1,0 +1,6 @@
+{
+  "mode": "candidate-pass-safe-occlusion",
+  "sha256": "9365083cbc918b9541e0726466099eb7b402c7c3407c0ecde3ffb870071432bf",
+  "artifact": "vendor/tree-research/artifacts/candidate-pass-safe-occlusion",
+  "visual_water_fix_verified": false
+}

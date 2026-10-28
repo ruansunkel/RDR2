@@ -167,7 +167,8 @@ def main():
     parser.add_argument('--work', type=Path, default=ROOT / 'vendor/tree-research')
     parser.add_argument('--mode', choices=['control', 'candidate', 'candidate-argument-buffer-off',
                                          'candidate-query-results', 'candidate-tree-occlusion',
-                                         'candidate-object-occlusion', 'candidate-rock-occlusion'], default='control')
+                                         'candidate-object-occlusion', 'candidate-rock-occlusion',
+                                         'candidate-pass-safe-occlusion'], default='control')
     parser.add_argument('--control-evidence', type=Path)
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--jobs', type=int, default=2)

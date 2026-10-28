@@ -51,3 +51,19 @@ class RendererSelectionTests(unittest.TestCase):
                     recorded['moltenvk']['commit'] = 'different'
                 with self.assertRaises(ValueError):
                     self.validate()
+
+    def test_accepted_rock_renderer_survives_an_unrelated_water_variant(self):
+        self.accepted['mode'] = self.metadata['mode'] = 'candidate-rock-occlusion'
+        self.metadata['pins'] = copy.deepcopy(self.pins)
+        self.pins['candidate']['variants']['candidate-pass-safe-occlusion'] = {
+            'files': {'shader.mm': 'experimental-source'}}
+        self.assertEqual(self.validate()['sha256'], self.accepted['sha256'])
+        self.pins['candidate']['variants']['candidate-rock-occlusion']['files']['shader.mm'] = 'changed'
+        with self.assertRaises(ValueError):
+            self.validate()
+
+    def test_missing_selected_variant_is_rejected(self):
+        del self.metadata['pins']['candidate']['variants']['candidate-query-results']
+        del self.pins['candidate']['variants']['candidate-query-results']
+        with self.assertRaises(ValueError):
+            self.validate()

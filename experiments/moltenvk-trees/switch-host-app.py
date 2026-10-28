@@ -11,6 +11,7 @@ import tempfile
 import time
 import hashlib
 import re
+from renderer_profile import app_profile
 
 
 def processes():
@@ -80,15 +81,13 @@ def main():
                         help='switch to a different candidate app and explicitly launch its runtime capture-enabled')
     args = parser.parse_args()
     old, new, data = args.from_app.resolve(), args.to_app.resolve(), args.data_root.resolve()
-    if (old == new and not args.capture_session) or data.name != 'RDR2Launcher-MoltenVK-Candidate':
+    if old == new and not args.capture_session:
         parser.error('Choose distinct candidate apps (or --capture-session) and the explicit candidate data folder')
     if args.capture_session and old != new:
         parser.error('A capture session preserves the current app/renderer; use matching from/to apps')
     capture_launch = args.capture_session or args.capture_new_app
     for app in [old, new]:
-        profile = json.loads((app / 'Contents/Resources/tree-candidate.json').read_text())
-        if profile.get('default_data_directory') != data.name or profile.get('candidate_patch_included') is not True:
-            parser.error('App profile does not match the isolated candidate environment')
+        profile = app_profile(app, data)
     selection = json.loads((data / 'state/selected-environment.json').read_text())['environment']
     if Path(selection['dataRoot']).resolve() != data:
         parser.error('Candidate selection points outside the expected test environment')

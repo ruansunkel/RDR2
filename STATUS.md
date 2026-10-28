@@ -1,3 +1,33 @@
+# Water reflection regression investigation — 2026-10-27
+
+The user corrected the initial regression direction during the controlled
+comparison: the earlier no-occlusion frame shows the reflection problem; the
+current accepted fixed build looks correct. Both exact renderer mappings and
+captures are verified. The fixed capture records all three bypasses active.
+The separate new candidate was not used for either view. Original capture:
+`game-ec52207f81814b299b2e0b5b2025417d`; fixed capture:
+`game-8042b6d712204ddf98647fe18961a0bc`. The original image is exported and
+inspected; the fixed image awaits replay after the user quits normally.
+
+A concrete defect was reproduced in all three existing helpers: bypassing the
+outer HiZ branch also bypasses its inverse-visibility flag. A separate candidate
+preserves that flag by bypassing only the inner depth-test branch. All 216 GPU
+controls pass, reproducing 18 legacy inverse-mode failures and retaining the
+original corrected instances. Exact-driver allocation and query controls pass.
+The candidate is `dist/RDR2WaterCheck.app`, built with
+`scripts/build.sh --water-reflection-candidate`; renderer SHA256
+`9365083cbc918b9541e0726466099eb7b402c7c3407c0ecde3ffb870071432bf`.
+Its signature and runtime integrity pass; 23 Python checks and 17 Swift checks
+pass. Main accepted app/renderer and archived inputs are preserved.
+
+The relationship of the inverse-pass defect to this water scene remains
+unverified, and the corrected user observation does not establish a water
+regression caused by the accepted fixes. Next: export the fixed water frame
+and compare it with the original; retain the candidate as experimental. Details:
+[water investigation](notes/water-reflection-investigation-2026-10-27.md).
+
+---
+
 # Pending: build setup from a fresh clone — 2026-10-27
 
 The app build still requires the prepared, Git-ignored `vendor/` inputs. A
@@ -7,6 +37,9 @@ renderer recipes without private historical test files, and validate newly
 compiled artifacts without treating their bytes as the historical tested
 binaries. See the [implementation checklist and acceptance checks](notes/fresh-clone-build-plan.md).
 This is documented backlog; setup/build behavior has not changed.
+
+Another next step is to design and add a polished launcher icon, including the
+macOS app icon assets and packaging integration.
 
 ---
 

@@ -166,6 +166,46 @@
           "MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h": "649bf3c7cf37f12c23024a83c90f728fefdd5ce4961b827304bc4a7082ef46dc"
         },
         "status": "diagnostic workaround for exactly the captured tree, packed-foliage and rigid-rock culling shaders; original depth and heap root cause unreproduced; rock visual result pending"
+      },
+      "candidate-pass-safe-occlusion": {
+        "patches": [
+          {
+            "file": "moltenvk-query-result-range.patch",
+            "sha256": "9cb8eb3b4859870668e2159569bd123cd993a0d94a95354cd41714fa83859a59"
+          },
+          {
+            "file": "moltenvk-query-diagnostics.patch",
+            "sha256": "15c7cce566280aeaf22061c190cee1d5d5702be87d54b90ec96c41b7645326c9"
+          },
+          {
+            "file": "moltenvk-captured-tree-hiz-bypass.patch",
+            "sha256": "d719b82a2068f23aa701b69a6b0056b7a16ed43b3aeb767944d0b60a18614aae"
+          },
+          {
+            "file": "moltenvk-captured-foliage-hiz-bypass.patch",
+            "sha256": "a82f646aabe78b8a3005003bf5e1781edf11acb2ad5be69c9738dcaf389f3b0c"
+          },
+          {
+            "file": "moltenvk-captured-rock-hiz-bypass.patch",
+            "sha256": "7663200963fc84adef5a840202d3f079c1997f456293bdad0ec0d9b7b1e9a6d1"
+          },
+          {
+            "file": "moltenvk-pass-safe-hiz-bypass.patch",
+            "sha256": "93d6e27091e88be0133ca277d1cbec7c17d11f2943cb5592d587be9b69ccaf16"
+          }
+        ],
+        "files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKDeviceMemory.mm": "3072ec021d0af94da71920695ff32fe634c8d953fcd30d23a8741962cb802af2",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.mm": "4028898581c349777766baaed7c5bee3af0f3ef7215cb7c2434d7ddb76ab3a21",
+          "MoltenVK/MoltenVK/GPUObjects/MVKQueryPool.h": "aa9baa23f878d04039cf1ad5ca98ee0526f79d4b20aa1c8468e854ded1bf4f4b",
+          "MoltenVK/MoltenVK/GPUObjects/MVKShaderModule.mm": "54ce2ac4074db51b1d676312c6fe38f47eab2f7d94dab250cf5ad136b8f63b51"
+        },
+        "added_files": {
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2TreeOcclusion.h": "56d52aa4555fde26ca269df8d85f76bbcceacc144b443fa093e7a7b4d6353cef",
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2FoliageOcclusion.h": "fbe807b8780a44a2ea95c551144b644857b9d595ae80c9d35edb98f7e9fb806c",
+          "MoltenVK/MoltenVK/GPUObjects/MVKRDR2RockOcclusion.h": "9f13b3aa7fad4176f6176b532025b51d0065b6507548efb71ece23276cde0e2f"
+        },
+        "status": "Depth-only bypass preserving HiZ enable and inverse-pass semantics; isolated GPU regression passed; water visual verification pending"
       }
     }
   },
