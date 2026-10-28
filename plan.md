@@ -167,6 +167,25 @@ Redact usernames, account data, tokens and private paths when publishing logs.
 4. Test fullscreen or borderless **only after** windowed gameplay works; use Highball's display-mode emulation if available. Maintain a rollback to working 720p configuration.
 5. No performance claims based on M5 Max, M1 Pro, or CrossOver results should be stated as an actual M1 Max measurement.
 
+### Planned: automatic macOS Game Mode for RDR2
+
+Enable Game Mode when RDR2 launches and enters macOS full-screen mode. This is
+pending implementation and host validation.
+
+- [ ] Determine how macOS identifies the actual RDR2 Wine process in the pinned
+  Intel engine, including the Steam → Rockstar → RDR2 launch chain.
+- [ ] Add the required game-category and `LSSupportsGameMode` metadata to the
+  appropriate app/helper bundle; verify that recognition reaches the game process.
+- [ ] Integrate macOS full-screen entry for the game, preserving a way to return
+  to the working windowed configuration.
+- [ ] On the M1 Max, verify Game Mode activation for RDR2 in Game Overlay, normal
+  deactivation after exiting full screen or quitting, and repeat-launch behavior.
+  Record activation evidence separately from any measured performance improvement.
+
+References: [Apple Game Mode requirements](https://support.apple.com/en-us/105118),
+[Apple's Game Mode metadata](https://developer.apple.com/documentation/bundleresources/information-property-list/lssupportsgamemode),
+and [Highball's Intel-engine limitation](https://github.com/gauthierpiarrette/highball/releases/tag/v0.10.17).
+
 ## Phase 6 — Create reproducible launch and diagnostic scripts (working build-Mac baseline)
 
 **Goal:** Minimize future GUI steps without breaking Steam/Rockstar authentication or depending on unstable implementation details.

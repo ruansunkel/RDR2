@@ -41,6 +41,11 @@ This is documented backlog; setup/build behavior has not changed.
 Another next step is to design and add a polished launcher icon, including the
 macOS app icon assets and packaging integration.
 
+Also planned: automatic macOS Game Mode for RDR2, covering Wine-process
+identification, game metadata and macOS full-screen integration. Verify activation
+for the actual game on the M1 Max through Game Overlay. Implementation and
+validation are pending; see [the Game Mode checklist](plan.md#planned-automatic-macos-game-mode-for-rdr2).
+
 ---
 
 # Separate graphics-check build using the existing installation — 2026-10-27
