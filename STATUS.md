@@ -1,3 +1,19 @@
+# Game Mode integration and launcher icon implemented — 2026-10-28
+
+The launcher now includes a western-style app icon and a signed Intel Wine game
+bundle with Game Mode metadata. macOS's Game Mode service recognizes the packaged
+Wine processes as games. A disposable prefix passed startup, Windows command and
+media-library checks. All 25 Python tests and 18 Swift core checks pass.
+
+Use **Game Mode…** in the launcher to enable optional automatic full screen;
+macOS requires Accessibility permission for that automation. Manual full screen
+also works. Activation is controlled by macOS; confirm it in RDR2 with
+**Command–Esc → Settings → Game Mode**. RDR2 full-screen activation, automatic
+entry after granting permission, exit/relaunch behavior and performance remain
+pending host validation. See [implementation and evidence](notes/game-mode-integration-2026-10-28.md).
+
+---
+
 # Water reflection regression investigation — 2026-10-27
 
 The user corrected the initial regression direction during the controlled
@@ -38,13 +54,8 @@ compiled artifacts without treating their bytes as the historical tested
 binaries. See the [implementation checklist and acceptance checks](notes/fresh-clone-build-plan.md).
 This is documented backlog; setup/build behavior has not changed.
 
-Another next step is to design and add a polished launcher icon, including the
-macOS app icon assets and packaging integration.
-
-Also planned: automatic macOS Game Mode for RDR2, covering Wine-process
-identification, game metadata and macOS full-screen integration. Verify activation
-for the actual game on the M1 Max through Game Overlay. Implementation and
-validation are pending; see [the Game Mode checklist](plan.md#planned-automatic-macos-game-mode-for-rdr2).
+The launcher icon and Game Mode integration were implemented first on 2026-10-28;
+the remaining Game Mode host checks are listed in [the checklist](plan.md#automatic-macos-game-mode-for-rdr2).
 
 ---
 

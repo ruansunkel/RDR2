@@ -5,8 +5,10 @@ import LauncherCore
     let edition = LauncherEdition.current
     var window: NSWindow!
     var coordinator: Coordinator?
+    var gameMode: GameModeController?
     let label = NSTextField(wrappingLabelWithString: "Checking launcher…")
     let dataLabel = NSTextField(labelWithString: "")
+    let gameModeLabel = NSTextField(wrappingLabelWithString: "")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -20,23 +22,31 @@ import LauncherCore
         environmentMenu.addItem(withTitle: "Use existing environment…", action: #selector(existingEnvironment), keyEquivalent: "")
         environmentMenu.addItem(withTitle: "Use default environment", action: #selector(defaultEnvironment), keyEquivalent: "")
         environmentItem.submenu = environmentMenu; menu.addItem(environmentItem)
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 650, height: 450),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 650, height: 510),
                           styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = edition.displayName
         window.center()
         let title = NSTextField(labelWithString: "Red Dead Redemption 2")
         title.font = .boldSystemFont(ofSize: 24)
+        let icon = NSImageView(image: NSImage(named: NSImage.applicationIconName) ?? NSImage())
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        let heading = NSStackView(views: [icon, title])
+        heading.spacing = 12
         let subtitle = NSTextField(wrappingLabelWithString: edition.subtitle)
         label.font = .systemFont(ofSize: 14)
         dataLabel.font = .systemFont(ofSize: 11)
         dataLabel.textColor = .secondaryLabelColor
         dataLabel.isSelectable = true
         dataLabel.lineBreakMode = .byTruncatingMiddle
+        gameModeLabel.font = .systemFont(ofSize: 11)
+        gameModeLabel.textColor = .secondaryLabelColor
         label.setContentHuggingPriority(.defaultLow, for: .vertical)
         let row1 = NSStackView(views: [button("Install & Play", #selector(install)), button("Play", #selector(play)), button("Open Steam", #selector(openSteam))])
         let row2 = NSStackView(views: [button("Repair", #selector(repair)), button("Choose game folder", #selector(choose)), button("View logs", #selector(logs)), button("Rosetta help", #selector(rosettaHelp)), button("Quit", #selector(quit))])
-        let row3 = NSStackView(views: [button("Use existing environment…", #selector(existingEnvironment)), button("Show game files", #selector(gameFiles))])
-        let stack = NSStackView(views: [title, subtitle, dataLabel, label, row1, row2, row3])
+        let row3 = NSStackView(views: [button("Use existing environment…", #selector(existingEnvironment)), button("Show game files", #selector(gameFiles)), button("Game Mode…", #selector(configureGameMode))])
+        let stack = NSStackView(views: [heading, subtitle, dataLabel, label, row1, row2, row3, gameModeLabel])
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
@@ -58,6 +68,9 @@ import LauncherCore
             } else { selection = try store.load() }
             try connect(selection, remember: args.contains("--remember-environment"))
             guard let resources = Bundle.main.resourceURL else { throw LauncherError.message("Missing app resources") }
+            gameMode = GameModeController(resources: resources)
+            gameMode?.changed = { [weak self] text in self?.gameModeLabel.stringValue = text }
+            gameMode?.start()
             if !FileManager.default.fileExists(atPath: resources.appendingPathComponent("runtime-manifest.json").path) {
                 label.stringValue = "Launcher-only preview: the verified Wine engine is not bundled. See BUILD.md to stage the runtime. No game launch has been verified."
             } else {
@@ -107,9 +120,10 @@ import LauncherCore
         if let folder = coordinator?.paths.gameDirectory(library: coordinator?.session.library) { NSWorkspace.shared.open(folder) }
         else { label.stringValue = "No RDR2 folder found in this environment. Use existing environment or check Steam’s Storage settings for another library." }
     }
-    @objc func install() { coordinator?.perform(.install) }
-    @objc func play() { coordinator?.perform(.play) }
-    @objc func openSteam() { coordinator?.perform(.open) }
+    @objc func install() { gameMode?.start(); coordinator?.perform(.install) }
+    @objc func play() { gameMode?.start(); coordinator?.perform(.play) }
+    @objc func openSteam() { gameMode?.start(); coordinator?.perform(.open) }
+    @objc func configureGameMode() { gameMode?.configure() }
     @objc func repair() { coordinator?.repair() }
     @objc func choose() { coordinator?.chooseLibrary() }
     @objc func logs() { if let paths = coordinator?.paths { NSWorkspace.shared.open(paths.logs) } }
@@ -147,6 +161,13 @@ if CommandLine.arguments.contains("--diagnose") {
             print("Occlusion workarounds: \(included ? "included" : "not included")")
         }
         print("Rosetta available: \(SystemCheck.rosettaAvailable())")
+        let helper = resources.appendingPathComponent("runtime/RDR2WineGame.app")
+        if let gameBundle = Bundle(url: helper),
+           gameBundle.object(forInfoDictionaryKey: "LSSupportsGameMode") as? Bool == true,
+           gameBundle.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String == "public.app-category.games" {
+            print("Game Mode helper: game category and support declared; activation requires a focused full-screen game")
+            print("Game Mode activation and performance: not verified by this diagnostic")
+        }
         exit(0)
     } catch { fputs("Diagnostic: \(error.localizedDescription)\n", stderr); exit(1) }
 }

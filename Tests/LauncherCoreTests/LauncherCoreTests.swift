@@ -222,6 +222,18 @@ final class LauncherCoreChecks {
         XCTAssertEqual(SteamAction.verify.arguments, ["steam://validate/1174180"])
     }
 
+    func testGameWindowAutomationExcludesLaunchersAndUnrelatedExecutables() {
+        XCTAssertEqual(GameProcess.arguments(pid: getpid()), CommandLine.arguments)
+        XCTAssertNil(GameProcess.arguments(pid: -1))
+        XCTAssertTrue(GameProcess.isRDR2(arguments: ["wine", "R:\\Red Dead Redemption 2\\RDR2.exe", "-ignorepipelinecache"]))
+        XCTAssertTrue(GameProcess.isRDR2(arguments: ["C:/Games/rdr2.EXE"]))
+        XCTAssertTrue(!GameProcess.isRDR2(arguments: ["wine", "Steam.exe", "RDR2.exe"]))
+        XCTAssertTrue(!GameProcess.isRDR2(arguments: ["wine", "start.exe", "RDR2.exe"]))
+        XCTAssertTrue(!GameProcess.isRDR2(arguments: ["RockstarLauncher.exe", "RDR2.exe"]))
+        XCTAssertTrue(!GameProcess.isRDR2(arguments: ["OtherRDR2.exe"]))
+        XCTAssertTrue(!GameProcess.isRDR2(arguments: []))
+    }
+
     func testRuntimeEnvironmentIsPrivateAndRelocates() throws {
         let json = #"{"engineID":"x64-crossover26.3-r27","wine":"runtime/engine/bin/wine","files":[],"baseEnv":{"DYLD_FALLBACK_LIBRARY_PATH":"${frameworks}","WINEDEBUG":"fixme-all"}}"#
         let runtime = try JSONDecoder().decode(Runtime.self, from: Data(json.utf8))
@@ -284,6 +296,7 @@ final class LauncherCoreChecks {
             ("runtime path containment", checks.testTraversalAndEscapingSymlinksAreRejected),
             ("runtime integrity", checks.testChangedRuntimeBytesFailIntegrity),
             ("Steam entitlement route", checks.testSteamActionsKeepEntitlementChain),
+            ("full-screen automation targets RDR2 only", checks.testGameWindowAutomationExcludesLaunchersAndUnrelatedExecutables),
             ("relocated process environment", checks.testRuntimeEnvironmentIsPrivateAndRelocates),
             ("experimental edition isolation", checks.testExperimentalEditionsKeepSelectionAndVariablesSeparate)
         ]
@@ -302,6 +315,6 @@ final class LauncherCoreChecks {
         try await checks.testTimezonePartialFailureRestoresOriginalDefinitions()
         try await checks.testTimezoneInterruptedMoveCanResumeWithoutPrefixReset()
         print("PASS: timezone applicability, verified backups and rollback")
-        print("17 Swift core checks passed")
+        print("18 Swift core checks passed")
     }
 }

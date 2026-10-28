@@ -59,7 +59,13 @@ def write_manifest(resources):
     for item in required:
         if not (resources / 'runtime' / item).is_file():
             raise ValueError(f'Required runtime file missing: {item}')
-    manifest = {'engineID': upstream['id'], 'wine': 'runtime/engine/bin/wine',
+    wine = 'runtime/engine/bin/wine'
+    game_mode = resources / 'runtime/game-mode.json'
+    if game_mode.exists():
+        wine = 'runtime/' + json.loads(game_mode.read_text())['wine']
+        if not within(resources / wine, resources / 'runtime') or not (resources / wine).is_file():
+            raise ValueError('Game Mode loader escapes the runtime or is missing')
+    manifest = {'engineID': upstream['id'], 'wine': wine,
                 'baseEnv': upstream['baseEnv'], 'files': inventory(resources)}
     (resources / 'runtime-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
 

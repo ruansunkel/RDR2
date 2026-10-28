@@ -29,6 +29,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/recipes" "$APP/Contents/
 cp "$BIN/RDR2Launcher" "$APP/Contents/MacOS/"
 python3 packaging/runtime_tools.py prune-launcher-rpaths "$APP"
 cp packaging/Info.plist "$APP/Contents/Info.plist"
+cp assets/launcher/RDR2Launcher.icns "$APP/Contents/Resources/RDR2Launcher.icns"
 cp config/engine-upstream.json "$APP/Contents/Resources/"
 cp config/media-sources.json "$APP/Contents/Resources/"
 cp config/recipes/*.json "$APP/Contents/Resources/recipes/"
@@ -36,6 +37,7 @@ cp BUILD.md "$APP/Contents/Resources/BUILD.md"
 /usr/bin/ditto licenses "$APP/Contents/Resources/licenses"
 if [[ "$MODE" == --runtime ]]; then
     /usr/bin/ditto "$RUNTIME" "$APP/Contents/Resources/runtime"
+    python3 packaging/game_mode.py "$APP/Contents/Resources/runtime" "$APP/Contents/Resources/RDR2Launcher.icns"
     python3 packaging/runtime_tools.py manifest "$APP/Contents/Resources"
 else
     echo 'LAUNCHER-ONLY PREVIEW: no Wine/runtime, no Steam/gameplay verification.' > "$APP/Contents/Resources/DEVELOPMENT.txt"

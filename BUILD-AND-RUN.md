@@ -23,6 +23,21 @@ open dist/RDR2GraphicsCheck.app
 
 The comparison keeps the earlier allocation/query changes.
 
+## Game Mode and launcher icon
+
+New builds include the launcher icon and a Wine helper that macOS recognizes as
+a game. Enter macOS full screen in RDR2 to make Game Mode available. Check its
+status with **Command–Esc → Settings → Game Mode** while playing.
+
+For automatic full screen, click **Game Mode…** in the launcher, choose
+**Enable automatic full screen**, and allow the launcher in **System Settings →
+Privacy & Security → Accessibility**. Keep the launcher open. It requests full
+screen once for the focused RDR2 window; exiting full screen stays under your
+control. Manual full screen works without Accessibility permission.
+
+Game classification has been verified; RDR2 activation and performance checks
+remain pending. See [implementation and validation](notes/game-mode-integration-2026-10-28.md).
+
 ## Water reflection investigation candidate
 
 ```sh

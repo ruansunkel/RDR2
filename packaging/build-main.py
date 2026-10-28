@@ -9,6 +9,7 @@ import plistlib
 import shutil
 import subprocess
 import tempfile
+import game_mode
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -146,7 +147,7 @@ def main():
             'CFBundleDisplayName': 'RDR2 Water Check' if water else 'RDR2 Launcher' if occlusion else 'RDR2 Graphics Check',
             'CFBundleName': 'RDR2WaterCheck' if water else 'RDR2Launcher' if occlusion else 'RDR2GraphicsCheck',
             'CFBundleIdentifier': 'org.rdr2launcher.water-check' if water else 'org.rdr2launcher.app' if occlusion else 'org.rdr2launcher.graphics-check',
-            'CFBundleVersion': '6',
+            'CFBundleVersion': '7',
             'RDR2LauncherEdition': 'patched',
             'RDR2LauncherSubtitle': 'Steam edition · Story Mode · Vulkan / patched MoltenVK\n' +
                 ('Water reflection test · pass-preserving occlusion candidate.' if water else
@@ -177,6 +178,7 @@ def main():
         manifest = json.loads(manifest_path.read_text())
         manifest['localOverrides'] = {'moltenvk': accepted}
         manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
+        game_mode.sign(resources / 'runtime')
         run('python3', ROOT / 'packaging/runtime_tools.py', 'manifest', resources)
         run(ROOT / 'packaging/audit-deps.sh', app, stdout=subprocess.DEVNULL)
         # Nested runtime binaries already carry valid signatures. Preserve the
